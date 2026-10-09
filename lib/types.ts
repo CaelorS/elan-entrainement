@@ -1,0 +1,13 @@
+export type Feedback='trop_dur'|'ok'|'facile';
+export type Exercise={id:string;nom:string;categorie:string;type_charge:string;unilateral:boolean;increment_kg:number;consigne:string;vigilance:string;objectif:string;media:string;audio_nom:string;statut:string};
+export type Entry={exercice_id:string;series:number;reps_min:number;reps_max:number;duree_s:number;repos_s:number;approche:boolean;intercalaire_de:number[];format:string;note:string;ordre:number;jours?:number[]};
+export type Model={id:string;nom:string;sous_titre:string;duree_min:number;jours:number[];version:number;actif_du:string;actif_au:string;archive:boolean;exercices:Entry[]};
+export type Program={catalogue:Exercise[];modeles:Model[]};
+export type Row={uuid:string;seance_uuid:string;date:string;heure_debut:string;seance_id:string;exercice_id:string;index_serie:number;cote:'gauche'|'droite'|'bilateral';charge_kg:number;charge_libelle:string;reps_prevues:number;reps_faites:number;duree_s:number;rir_ressenti:number|null;approche:boolean;valide_auto:boolean;intercalaire?:boolean};
+export type ExerciseFeedback={uuid:string;seance_uuid:string;date:string;exercice_id:string;retour:Feedback;saisi_en:string};
+export type Session={seance_uuid:string;date:string;seance_id:string;seance_version:number;nom:string;heure_debut:string;heure_fin:string;duree_min:number;exercices_prevus:number;exercices_faits:number;volume_kg:number;rpe_global:number|null;ressenti:string;records:string[];statut:'terminee'|'abandonnee';series:Row[];retours:ExerciseFeedback[]};
+export type Task={id:string;kind:'set'|'rest'|'review';ex:Exercise;entry:Entry;index:number;side:Row['cote'];approach:boolean;factor:number;reps:number;seconds:number;fillers?:Task[]};
+export type Run={uuid:string;model:Model;tasks:Task[];cursor:number;phase:'CHARGE'|'COUNTDOWN'|'EXECUTION'|'VALIDATION'|'REST'|'REVIEW'|'BILAN';startedAt:number;phaseAt:number;executionAt?:number;executionEnd?:number;deadline:number|null;pausedAt:number|null;rows:Row[];retours:Record<string,Feedback>;loads:Record<string,number>;bands:Record<string,string>;reps:number;rir:number|null;auto:boolean;fillerIndex:number;fillerAt:number;fillerDeadline:number|null;fillerDone:string[];suggestions:Record<string,{charge:number|null;motif:string;reference:string}>;savedAt:number;rpe:number|null;note:string;reduced:boolean};
+export type RunLog={uuid:string;date:string;km:number};
+export type Settings={audio:'voice'|'beeps'|'silent';barKg:number;reduced:boolean;sheetsUrl:string};
+export type LocalData={program:Program;sessions:Session[];running:Run|null;runs:RunLog[];settings:Settings;pending:string[];lastSync:number|null};

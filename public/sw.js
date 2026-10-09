@@ -1,0 +1,9 @@
+const CACHE='elan-v1';
+const CORE=['/','/data/programme.json','/manifest.webmanifest','/favicon.svg','/icon-192.png','/icon-512.png','/audio/manifest.json'];
+self.addEventListener('install',event=>{event.waitUntil((async()=>{const cache=await caches.open(CACHE);await cache.addAll(CORE);try{const list=await (await fetch('/audio/manifest.json')).json();await Promise.allSettled(list.map(id=>cache.add('/audio/'+id+'.m4a')))}catch{}})());self.skipWaiting()});
+self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('elan-')&&key!==CACHE)await caches.delete(key);await self.clients.claim()})())});
+self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/')||['/signin-with-chatgpt','/signout-with-chatgpt','/callback'].includes(url.pathname)||url.pathname.includes('__vite')||url.pathname.includes('@vite'))return;
+ if(request.mode==='navigate'){event.respondWith((async()=>{try{const response=await fetch(request);if(response.ok&&!response.redirected&&(response.headers.get('Content-Type')??'').includes('text/html')){const cache=await caches.open(CACHE);await cache.put('/',response.clone())}return response}catch{const cached=await caches.match('/');return cached??new Response('Ouvre Élan une première fois en ligne pour préparer le mode hors connexion.',{status:503})}})());return}
+ const immutable=/\.(js|css|m4a|png|svg|webp|mp4|woff2?)(\?|$)/.test(url.pathname);if(!immutable)return;
+ event.respondWith((async()=>{const cache=await caches.open(CACHE),cached=await cache.match(request);if(cached)return cached;const response=await fetch(request);if(response.ok)await cache.put(request,response.clone());return response})());
+});
