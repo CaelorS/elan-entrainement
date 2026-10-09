@@ -89,14 +89,15 @@
       "nom": "Pied court",
       "categorie": "pied",
       "type_charge": "poids_corps",
-      "unilateral": true,
+      "unilateral": false,
       "increment_kg": 2.5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
       "media": "",
       "audio_nom": "pied_court.m4a",
-      "statut": "actif"
+      "statut": "actif",
+      "revision": 2
     },
     {
       "id": "marche_escargot",
@@ -338,7 +339,7 @@
     },
     {
       "id": "transition",
-      "nom": "Transition et échauffement",
+      "nom": "Échauffement bas du corps",
       "categorie": "echauffement",
       "type_charge": "aucune",
       "unilateral": false,
@@ -348,7 +349,8 @@
       "objectif": "",
       "media": "",
       "audio_nom": "transition.m4a",
-      "statut": "actif"
+      "statut": "actif",
+      "revision": 2
     },
     {
       "id": "squat",
@@ -453,14 +455,15 @@
       "nom": "Pont fessier",
       "categorie": "mobilite",
       "type_charge": "aucune",
-      "unilateral": true,
+      "unilateral": false,
       "increment_kg": 2.5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
       "media": "",
       "audio_nom": "pont_fessier.m4a",
-      "statut": "actif"
+      "statut": "actif",
+      "revision": 2
     },
     {
       "id": "pectoraux_porte",
@@ -590,7 +593,20 @@
           "approche": false,
           "intercalaire_de": [],
           "format": "",
-          "note": ""
+          "note": "",
+          "revision": 2,
+          "steps": [
+            {
+              "exercice_id": "knee_to_wall",
+              "duree_s": 30,
+              "consigne": "Activité de démonstration."
+            },
+            {
+              "exercice_id": "rotation_thoracique",
+              "duree_s": 30,
+              "consigne": "Activité de démonstration."
+            }
+          ]
         },
         {
           "exercice_id": "squat",
@@ -700,7 +716,20 @@
           "approche": false,
           "intercalaire_de": [],
           "format": "",
-          "note": ""
+          "note": "",
+          "revision": 2,
+          "steps": [
+            {
+              "exercice_id": "knee_to_wall",
+              "duree_s": 30,
+              "consigne": "Activité de démonstration."
+            },
+            {
+              "exercice_id": "rotation_thoracique",
+              "duree_s": 30,
+              "consigne": "Activité de démonstration."
+            }
+          ]
         },
         {
           "exercice_id": "squat",
@@ -745,5 +774,6 @@
         }
       ]
     }
-  ]
+  ],
+  "revision": 2
 }

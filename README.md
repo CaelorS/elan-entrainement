@@ -14,7 +14,7 @@ npm run dev -- --port 5173
 ```
 
 ```sh
-node --experimental-strip-types --test tests/engine.test.ts
+node --experimental-strip-types --test tests/*.test.ts
 npx tsc --noEmit
 npm run build
 node scripts/cache-build.mjs
