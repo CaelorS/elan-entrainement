@@ -1,2 +1,0 @@
-import {env} from 'cloudflare:workers';import {getChatGPTUser} from '@/app/chatgpt-auth';
-export async function GET(){if(!await getChatGPTUser())return Response.json({error:'Authentification requise'},{status:401});try{if(!env.DB)throw Error('Database unavailable');const result=await env.DB.prepare('SELECT payload FROM sessions ORDER BY updated DESC').all<{payload:string}>();return Response.json({seances:result.results.map(x=>JSON.parse(x.payload))},{headers:{'Cache-Control':'no-store'}})}catch{return Response.json({error:'Historique indisponible'},{status:503})}}
