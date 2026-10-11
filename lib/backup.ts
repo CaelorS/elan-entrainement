@@ -12,7 +12,7 @@ const backupSchema=z.object({program:programSchema,sessions:z.array(session),run
 export function restoreBackup(local:LocalData,input:unknown):LocalData{
  const b=backupSchema.parse(input);
  const sessions=new Map(local.sessions.map(s=>[s.seance_uuid,s]));
- for(const s of b.sessions)sessions.set(s.seance_uuid,s as Session);
+ for(const s of b.sessions.filter(s=>!local.deletedSessions?.includes(s.seance_uuid)))sessions.set(s.seance_uuid,s as Session);
  const runs=new Map(local.runs.map(r=>[r.uuid,r]));for(const r of b.runs)runs.set(r.uuid,r as RunLog);
  return {...local,program:b.program as Program,sessions:[...sessions.values()],runs:[...runs.values()],settings:b.settings?{...b.settings,sheetsUrl:''}:local.settings,
   pending:[...new Set([...local.pending,'program',...b.sessions.map(s=>s.seance_uuid),...b.runs.map(r=>r.uuid)])]};

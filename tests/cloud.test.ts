@@ -61,6 +61,9 @@ test('Supabase SQL enforces owner isolation, blocks anonymous users and detects 
   await assert.rejects(db.query("insert into public.elan_sessions values('00000000-0000-4000-8000-000000000001','attack','{}')"),/row-level security/);
   await sync(p,0,[{seance_uuid:'s1',series:[],nom:'Owner 2'}]);
   await login(1);assert.equal((await sync()).sessions[0].nom,undefined);
+  const deleted=await sync(null,0,[{seance_uuid:'s1',series:[],_deleted:true}]);assert.equal(deleted.sessions.length,0);assert.deepEqual(deleted.deleted_sessions,['s1']);
+  assert.equal((await sync(null,0,[{seance_uuid:'s1',series:[],nom:'Stale offline device'}])).sessions.length,0);
+  await login(2);assert.equal((await sync()).sessions[0].nom,'Owner 2');
  }finally{await db.close()}
 });
 
@@ -80,4 +83,15 @@ test('offline identity survives token expiry without storing credentials or gran
  rememberAccount(storage,{user:{id:'00000000-0000-4000-8000-000000000001',email:'test@example.invalid'},access_token:'must-not-copy'} as any);
  assert.equal(readOfflineAccount(storage)?.user.id,'00000000-0000-4000-8000-000000000001');assert.ok(![...values.values()].join('').includes('must-not-copy'));
  rememberAccount(storage,null);assert.equal(readOfflineAccount(storage),null);
+});
+
+
+test('discard leaves history intact; deletion survives persistence and an in-flight sync',async()=>{
+ const {discardRunning,removeSession}=await import('../lib/session-actions.ts');
+ const before=blank();before.sessions=[{seance_uuid:'keep',heure_debut:'2026-10-01'},{seance_uuid:'delete',heure_debut:'2026-10-02'}] as any;before.running={uuid:'draft'} as any;
+ const discarded=discardRunning(before);assert.equal(discarded.running,null);assert.deepEqual(discarded.sessions,before.sessions);assert.deepEqual(discarded.pending,[]);
+ const removed=removeSession(discarded,'delete');const merged=mergeSyncedData(removed,discarded,{...discarded,lastSync:99});
+ assert.deepEqual(merged.sessions.map(s=>s.seance_uuid),['keep']);assert.deepEqual(merged.pending,['delete']);
+ const store=new TrainingStore('deletion-test');await store.persist(merged);assert.deepEqual((await store.load()).deletedSessions,['delete']);
+ const synced=mergeSyncedData(merged,merged,{...merged,pending:[],lastSync:100});assert.deepEqual(synced.pending,[]);assert.deepEqual(synced.deletedSessions,['delete']);
 });

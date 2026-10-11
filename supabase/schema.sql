@@ -81,8 +81,8 @@ begin
  if jsonb_typeof(p_sessions) <> 'array' or jsonb_typeof(p_runs) <> 'array' then raise exception 'Invalid history'; end if;
  for item in select value from jsonb_array_elements(p_sessions) loop
   if coalesce(item->>'seance_uuid','')='' or jsonb_typeof(item->'series') is distinct from 'array' then raise exception 'Invalid session'; end if;
-  insert into public.elan_sessions(user_id,id,payload) values(owner_id,item->>'seance_uuid',item)
-   on conflict(user_id,id) do update set payload=excluded.payload;
+  insert into public.elan_sessions(user_id,id,payload) values(owner_id,item->>'seance_uuid',case when item->>'_deleted'='true' then jsonb_build_object('seance_uuid',item->>'seance_uuid','series','[]'::jsonb,'_deleted',true) else item end)
+   on conflict(user_id,id) do update set payload=excluded.payload where public.elan_sessions.payload->>'_deleted' is distinct from 'true';
  end loop;
  for item in select value from jsonb_array_elements(p_runs) loop
   if coalesce(item->>'uuid','')='' then raise exception 'Invalid run'; end if;
@@ -91,7 +91,8 @@ begin
  end loop;
  return jsonb_build_object('program',current_program,'revision',current_revision,'conflict',conflict,
   'catalogue',coalesce((select jsonb_agg(payload order by id) from public.elan_exercises),'[]'::jsonb),
-  'sessions',coalesce((select jsonb_agg(payload order by payload->>'heure_debut' desc) from public.elan_sessions where user_id=owner_id),'[]'::jsonb),
+  'deleted_sessions',coalesce((select jsonb_agg(id) from public.elan_sessions where user_id=owner_id and payload->>'_deleted'='true'),'[]'::jsonb),
+  'sessions',coalesce((select jsonb_agg(payload order by payload->>'heure_debut' desc) from public.elan_sessions where user_id=owner_id and payload->>'_deleted' is distinct from 'true'),'[]'::jsonb),
   'runs',coalesce((select jsonb_agg(payload) from public.elan_runs where user_id=owner_id),'[]'::jsonb));
 end;
 $$;

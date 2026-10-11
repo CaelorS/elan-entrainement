@@ -1,7 +1,7 @@
 import {supabase} from './supabase.ts';
 import type {LocalData,Program,Session,RunLog,Exercise} from './types';
 const EMPTY:Program={catalogue:[],modeles:[]};
-export type CloudResult={catalogue?:Exercise[];program:Program|null;revision:number;conflict:boolean;sessions:Session[];runs:RunLog[]};
+export type CloudResult={deleted_sessions?:string[];catalogue?:Exercise[];program:Program|null;revision:number;conflict:boolean;sessions:Session[];runs:RunLog[]};
 // Keep account-specific definitions; add missing shared exercises without replacing the programme.
 export function mergeCatalogue(program:Program,catalogue:Exercise[]):Program {
  const own=new Set(program.catalogue.map(e=>e.id));
@@ -21,11 +21,11 @@ export class TrainingStore {
  async sync(local:LocalData){
   const {data:{session}}=await this.client.auth.getSession();if(session?.user.id!==this.userId)throw Error('Reconnecte-toi pour synchroniser.');
   const ids=[...local.pending];
-  const {data,error}=await this.client.rpc('elan_sync',{p_program:ids.includes('program')?local.program:null,p_revision:local.programRevision??0,p_sessions:local.sessions.filter(s=>ids.includes(s.seance_uuid)),p_runs:local.runs.filter(r=>ids.includes(r.uuid))}).abortSignal(AbortSignal.timeout(20000));
+  const {data,error}=await this.client.rpc('elan_sync',{p_program:ids.includes('program')?local.program:null,p_revision:local.programRevision??0,p_sessions:[...local.sessions.filter(s=>ids.includes(s.seance_uuid)&&!local.deletedSessions?.includes(s.seance_uuid)),...(local.deletedSessions??[]).filter(id=>ids.includes(id)).map(id=>({seance_uuid:id,series:[],_deleted:true}))],p_runs:local.runs.filter(r=>ids.includes(r.uuid))}).abortSignal(AbortSignal.timeout(20000));
   if(error)throw Error(error.code==='PGRST202'?'La base Supabase doit encore être initialisée avec le fichier schema.sql.':error.message);
   const remote=data as CloudResult;
   if(remote.conflict)throw new ProgramConflict(remote);
-  return {data:{...local,program:mergeCatalogue(remote.program??local.program,remote.catalogue??[]),programRevision:remote.revision,sessions:remote.sessions,runs:remote.runs,pending:local.pending.filter(id=>!ids.includes(id)),lastSync:Date.now()},sheets:false};
+  return {data:{...local,program:mergeCatalogue(remote.program??local.program,remote.catalogue??[]),programRevision:remote.revision,deletedSessions:[...new Set([...(local.deletedSessions??[]),...(remote.deleted_sessions??[])])],sessions:remote.sessions.filter(s=>!local.deletedSessions?.includes(s.seance_uuid)),runs:remote.runs,pending:local.pending.filter(id=>!ids.includes(id)),lastSync:Date.now()},sheets:false};
  }
 }
 import {rowMeasure,rowDistance} from './activity.ts';
