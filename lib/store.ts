@@ -1,7 +1,12 @@
 import {supabase} from './supabase.ts';
-import type {LocalData,Program,Session,RunLog} from './types';
+import type {LocalData,Program,Session,RunLog,Exercise} from './types';
 const EMPTY:Program={catalogue:[],modeles:[]};
-export type CloudResult={program:Program|null;revision:number;conflict:boolean;sessions:Session[];runs:RunLog[]};
+export type CloudResult={catalogue?:Exercise[];program:Program|null;revision:number;conflict:boolean;sessions:Session[];runs:RunLog[]};
+// Keep account-specific definitions; add missing shared exercises without replacing the programme.
+export function mergeCatalogue(program:Program,catalogue:Exercise[]):Program {
+ const own=new Set(program.catalogue.map(e=>e.id));
+ return {...program,catalogue:[...program.catalogue,...catalogue.filter(e=>!own.has(e.id))]};
+}
 export class ProgramConflict extends Error { remote:CloudResult;constructor(remote:CloudResult){super('Ton programme a aussi été modifié sur un autre appareil. Choisis la version à conserver dans les réglages.');this.remote=remote} }
 let dbPromise:Promise<IDBDatabase>|null=null;
 function db(){if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{const r=indexedDB.open('elan-training-cloud',1);r.onupgradeneeded=()=>r.result.createObjectStore('data');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});return dbPromise}
@@ -20,7 +25,7 @@ export class TrainingStore {
   if(error)throw Error(error.code==='PGRST202'?'La base Supabase doit encore être initialisée avec le fichier schema.sql.':error.message);
   const remote=data as CloudResult;
   if(remote.conflict)throw new ProgramConflict(remote);
-  return {data:{...local,program:remote.program??local.program,programRevision:remote.revision,sessions:remote.sessions,runs:remote.runs,pending:local.pending.filter(id=>!ids.includes(id)),lastSync:Date.now()},sheets:false};
+  return {data:{...local,program:mergeCatalogue(remote.program??local.program,remote.catalogue??[]),programRevision:remote.revision,sessions:remote.sessions,runs:remote.runs,pending:local.pending.filter(id=>!ids.includes(id)),lastSync:Date.now()},sheets:false};
  }
 }
 import {rowMeasure,rowDistance} from './activity.ts';

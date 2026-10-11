@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 import 'fake-indexeddb/auto';
 import {restoreBackup} from '../lib/backup.ts';
 import {mergeSyncedData} from '../lib/sync-merge.ts';
-import {TrainingStore,ProgramConflict} from '../lib/store.ts';
+import {TrainingStore,ProgramConflict,mergeCatalogue} from '../lib/store.ts';
 import type {LocalData,Program} from '../lib/types';
 const demo=JSON.parse(await readFile(new URL('../public/data/programme.json',import.meta.url),'utf8')) as Program;
 const blank=():LocalData=>({program:{catalogue:[],modeles:[]},sessions:[],runs:[],running:null,settings:{audio:'beeps',barKg:20,reduced:false,sheetsUrl:''},pending:[],lastSync:null,programRevision:0});
@@ -44,12 +44,15 @@ test('Supabase SQL enforces owner isolation, blocks anonymous users and detects 
    grant usage on schema auth,public to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
    insert into auth.users values ('00000000-0000-4000-8000-000000000001'),('00000000-0000-4000-8000-000000000002');`);
   const schema=await readFile(new URL('../supabase/schema.sql',import.meta.url),'utf8');await db.exec(schema);await db.exec(schema);
+  await db.exec(await readFile(new URL('../supabase/catalogue.sql',import.meta.url),'utf8'));
   const login=async(id:number)=>db.exec(`reset role;set role authenticated;set request.jwt.claim.sub='00000000-0000-4000-8000-${String(id).padStart(12,'0')}';`);
   const sync=async(program:unknown=null,revision=0,sessions:unknown[]=[])=>{
    const result=await db.query<{result:any}>('select public.elan_sync($1::jsonb,$2::bigint,$3::jsonb) as result',[program?JSON.stringify(program):null,revision,JSON.stringify(sessions)]);return result.rows[0].result;
   };
   await db.exec('set role anon;');await assert.rejects(sync(),/permission denied/);await assert.rejects(db.query('select * from public.elan_sessions'),/permission denied/);
   await login(1);const p={catalogue:[],modeles:[]};const first=await sync(p,0,[{seance_uuid:'s1',series:[]}]);assert.equal(first.revision,1);assert.equal(first.sessions.length,1);
+  assert.ok(first.catalogue.some((e:any)=>e.id==='presse_45'));
+  await assert.rejects(db.query("insert into public.elan_exercises values('evil','{}')"),/permission denied/);
   assert.equal((await sync(p,0)).conflict,false); // Retry after lost response.
   const changed={...p,revision:2};const stale=await sync(changed,0);assert.equal(stale.conflict,true);assert.equal(stale.revision,1);
   const accepted=await sync(changed,1);assert.equal(accepted.revision,2);
@@ -59,6 +62,15 @@ test('Supabase SQL enforces owner isolation, blocks anonymous users and detects 
   await sync(p,0,[{seance_uuid:'s1',series:[],nom:'Owner 2'}]);
   await login(1);assert.equal((await sync()).sessions[0].nom,undefined);
  }finally{await db.close()}
+});
+
+test('shared catalogue adds exercises without replacing private definitions or models',()=>{
+ const own=structuredClone(demo),custom=own.catalogue[0];custom.consigne='Private cue';
+ const fresh={...custom,id:'new-shared',consigne:'Generic cue'};
+ const merged=mergeCatalogue(own,[{...custom,consigne:'Must not replace'},fresh]);
+ assert.equal(merged.catalogue.find(e=>e.id===custom.id)?.consigne,'Private cue');
+ assert.equal(merged.catalogue.length,own.catalogue.length+1);
+ assert.deepEqual(merged.modeles,own.modeles);assert.equal(own.catalogue.length,demo.catalogue.length);
 });
 
 test('offline identity survives token expiry without storing credentials or granting server access',async()=>{

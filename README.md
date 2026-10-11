@@ -40,3 +40,11 @@ Le chemin de publication est `/elan-entrainement/`, configuré dans `vite.config
 Les tests exécutent le moteur de séance, les imports, le stockage local par compte, la fusion pendant les synchronisations et le SQL dans un Postgres local éphémère (PGlite) avec deux utilisateurs et un rôle anonyme. Un essai connecté sur le véritable projet Supabase reste nécessaire après sa configuration.
 
 Ne jamais ajouter les exports personnels, bases locales, clés de service ou mots de passe au dépôt.
+
+## Comptes et programmes préinstallés
+
+Le catalogue commun est dans `elan_exercises` : appliquer `supabase/schema.sql`, puis `supabase/catalogue.sql`. Les utilisateurs connectés peuvent le lire, sans pouvoir le modifier. Leurs programmes, charges et historiques restent isolés par compte. Les fiches privées existantes gardent la priorité sur le catalogue partagé.
+
+Pour préparer un programme pour un nouveau compte : inviter la personne depuis Supabase Authentication, puis préparer un import privé avec `node --experimental-strip-types scripts/prepare-profile.mjs sauvegarde.json adresse@example.com profil.sql`. Exécuter ce SQL dans le projet Supabase. Il n’écrase jamais un programme existant. Garder les sauvegardes et SQL produits hors du dépôt public. Le programme se charge à la première connexion.
+
+La connexion propose « Mot de passe oublié ». Configurer la Site URL sur l’adresse de l’application et autoriser la même adresse avec `?recovery=1`. Les liens de récupération et d’invitation ouvrent le formulaire de choix du mot de passe. Les utilisateurs saisissent leurs mots de passe eux-mêmes.

@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {readOfflineAccount,rememberAccount,type LocalAccount} from '../lib/offline-account';
-import {supabase} from '../lib/supabase';
+import {supabase,credentialLink} from '../lib/supabase';
 import {TrainingStore} from '../lib/store';
 import Home from '../app/page';
 import {useAppUpdates} from '../lib/updates';
@@ -29,8 +29,8 @@ function authMessage(error:unknown){
 }
 function App(){
  const [session,setSession]=useState<LocalAccount|null>(null),[ready,setReady]=useState(false),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const [recovery,setRecovery]=useState(()=>new URLSearchParams(location.search).get('recovery')==='1'||sessionStorage.getItem('elan-password-recovery')==='1'),[forgot,setForgot]=useState(false),[notice,setNotice]=useState(''),[confirmation,setConfirmation]=useState('');
- useEffect(()=>{let live=true;
+ const [recovery,setRecovery]=useState(()=>credentialLink||sessionStorage.getItem('elan-password-recovery')==='1'),[forgot,setForgot]=useState(false),[notice,setNotice]=useState(''),[confirmation,setConfirmation]=useState('');
+ useEffect(()=>{let live=true;if(credentialLink)sessionStorage.setItem('elan-password-recovery','1');
   const accept=(s:LocalAccount|null)=>{if(!live)return;if(s)rememberAccount(localStorage,s);setSession(s??(!navigator.onLine?readOfflineAccount(localStorage):null));setReady(true)};
   if(!navigator.onLine)accept(readOfflineAccount(localStorage));
   const refresh=()=>void supabase.auth.getSession().then(({data,error})=>{accept(data.session);if(error&&navigator.onLine)setError('Reconnecte-toi pour reprendre la synchronisation.');});

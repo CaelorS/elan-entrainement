@@ -33,7 +33,7 @@ export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now
 function sets(ex:Exercise,e:Entry,approach=false,factor=1,indexOffset=0):Task[]{
  const measure=measureFor(ex,e),out:Task[]=[];
  for(let i=1;i<=e.series;i++)for(const side of ex.unilateral?['gauche','droite'] as const:['bilateral'] as const)
-  out.push({id:uid(),kind:'set',ex,entry:e,index:i+indexOffset,side,approach,factor,reps:measure==='reps'?e.reps_max:0,seconds:measure==='duration'?e.duree_s:0,warmup:ex.categorie==='echauffement'});
+  out.push({id:uid(),kind:'set',ex,entry:e,index:i+indexOffset,side,approach,factor,reps:measure==='reps'?e.reps_max:0,seconds:measure==='duration'?(e.durees_s?.[i-1]??e.duree_s):0,warmup:ex.categorie==='echauffement'});
  return out;
 }
 export function compile(model:Model,program:Program,reduced=false,day=new Date().getDay()):Task[]{

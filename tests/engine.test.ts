@@ -1,9 +1,17 @@
-import {measureFor,distanceFor,rowMeasure,rowDistance,targetLabel,cycleState,primaryRows} from '../lib/activity.ts';
+import {measureFor,distanceFor,rowMeasure,rowDistance,targetLabel,cycleState,primaryRows,hasWeight,entryLabel} from '../lib/activity.ts';
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {compile,enter,makeRun,suggest,taskLoad,finishRun,startExecution,rowFor,completeExecution,confirmLoad,validateExecution,completeFiller,togglePause,restartTimer,isLastSet,nextSet} from '../lib/engine.ts';import type {Program,Session,Row,Run} from '../lib/types.ts';
 const p=JSON.parse(readFileSync(new URL('../public/data/programme.json',import.meta.url),'utf8')) as Program;const model=p.modeles.find(m=>m.id==='bas_lourde')!;const squat=p.catalogue.find(e=>e.id==='squat')!,entry=model.exercices.find(e=>e.exercice_id==='squat')!;
 const session=(days:number,feedback='ok',reps=5,charge=50):Session=>({seance_uuid:crypto.randomUUID(),date:'2026-10-01',seance_id:'bas_lourde',seance_version:1,nom:'Test',heure_debut:new Date(Date.now()-days*86400000).toISOString(),heure_fin:new Date().toISOString(),duree_min:45,exercices_prevus:3,exercices_faits:3,volume_kg:1000,rpe_global:5,ressenti:'',records:[],statut:'terminee',series:Array.from({length:4},(_,i)=>({exercice_id:'squat',charge_kg:charge,reps_faites:reps,approche:false,cote:'bilateral',index_serie:i+1} as Row)),retours:[{exercice_id:'squat',retour:feedback} as any]});
 test('demo catalogue and models are consistent',()=>{assert.equal(p.catalogue.length,34);assert.equal(p.modeles.length,5);for(const m of p.modeles)for(const e of m.exercices)assert.ok(p.catalogue.some(x=>x.id===e.exercice_id))});
 test('no history asks for initial load',()=>assert.equal(suggest(squat,entry,model.id,[]).charge,null));
+test('variable holds preserve prescribed durations on both sides, and machines use kg',()=>{
+ const e={...entry,exercice_id:'gainage_lateral',approche:false,series:3,mesure:'duration' as const,duree_s:20,durees_s:[20,25,30]};
+ const tasks=compile({...model,exercices:[e]},p).filter(t=>t.kind==='set');
+ assert.deepEqual(tasks.map(t=>t.seconds),[20,20,25,25,30,30]);
+ assert.equal(entryLabel(p.catalogue.find(e=>e.id==='gainage_lateral')!,e),'20 s / 25 s / 30 s par côté');
+ assert.equal(hasWeight({...squat,type_charge:'machine'}),true);
+ assert.equal(hasWeight({...squat,type_charge:'poulie'}),true);
+});
 test('two full sessions progress, a hard feedback cancels progression',()=>{assert.equal(suggest(squat,entry,model.id,[session(2),session(9)]).charge,55);assert.equal(suggest(squat,entry,model.id,[session(2,'trop_dur'),session(9)]).charge,45);assert.equal(suggest(squat,entry,model.id,[session(2,'facile'),session(9)]).charge,60)});
 test('failed sets do not automatically reduce load',()=>assert.equal(suggest(squat,entry,model.id,[session(2,'ok',3)]).charge,50));
 test('long breaks reduce load or request fresh discovery',()=>{assert.equal(suggest(squat,entry,model.id,[session(30)]).charge,40);assert.equal(suggest(squat,entry,model.id,[session(70)]).charge,null)});

@@ -30,6 +30,18 @@ create policy owner_access on public.elan_runs for all to authenticated using ((
 revoke all on public.elan_programs,public.elan_sessions,public.elan_runs from anon,authenticated;
 grant select,insert,update on public.elan_programs,public.elan_sessions,public.elan_runs to authenticated;
 
+-- Shared exercise definitions contain no user programme, loads or history.
+create table if not exists public.elan_exercises (
+ id text primary key,
+ payload jsonb not null check (payload->>'id'=id),
+ updated_at timestamptz not null default now()
+);
+alter table public.elan_exercises enable row level security;
+drop policy if exists catalogue_read on public.elan_exercises;
+create policy catalogue_read on public.elan_exercises for select to authenticated using (true);
+revoke all on public.elan_exercises from anon,authenticated;
+grant select on public.elan_exercises to authenticated;
+
 create or replace function public.elan_program_revision() returns trigger language plpgsql set search_path='' as $$
 begin new.revision:=old.revision+1;new.updated_at:=now();return new;end;
 $$;
@@ -78,6 +90,7 @@ begin
    on conflict(user_id,id) do update set payload=excluded.payload;
  end loop;
  return jsonb_build_object('program',current_program,'revision',current_revision,'conflict',conflict,
+  'catalogue',coalesce((select jsonb_agg(payload order by id) from public.elan_exercises),'[]'::jsonb),
   'sessions',coalesce((select jsonb_agg(payload order by payload->>'heure_debut' desc) from public.elan_sessions where user_id=owner_id),'[]'::jsonb),
   'runs',coalesce((select jsonb_agg(payload) from public.elan_runs where user_id=owner_id),'[]'::jsonb));
 end;
