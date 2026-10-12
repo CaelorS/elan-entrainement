@@ -4,18 +4,19 @@ import {readOfflineAccount,rememberAccount,type LocalAccount} from '../lib/offli
 import {supabase,credentialLink} from '../lib/supabase';
 import {TrainingStore} from '../lib/store';
 import Home from '../app/page';
+import {AdminPanel} from '../components/admin-panel';
 import {useAppUpdates} from '../lib/updates';
 import '../app/globals.css';
 function SignedIn({session,onSignOut}:{session:LocalAccount;onSignOut:()=>Promise<void>}){
  const store=useMemo(()=>new TrainingStore(session.user.id),[session.user.id]);
- const [exclusive,setExclusive]=useState<boolean|null>(null);
+ const [exclusive,setExclusive]=useState<boolean|null>(null),[preview,setPreview]=useState(false);
  useEffect(()=>{let live=true,release=()=>{};
   if(!navigator.locks){setExclusive(true);return}
   void navigator.locks.request('elan-account-'+session.user.id,{ifAvailable:true},async lock=>{if(!live)return;setExclusive(!!lock);if(lock)await new Promise<void>(resolve=>{release=resolve})});
   return()=>{live=false;release()};
  },[session.user.id]);
  if(!exclusive)return <main className="auth-screen"><div className="auth-card"><h1>Élan est déjà ouvert.</h1><p>{exclusive===null?'Ouverture du stockage…':'Ferme l’autre fenêtre Élan pour continuer ici et préserver ta séance.'}</p>{exclusive===false&&<button className="primary" onClick={()=>location.reload()}>Réessayer</button>}</div></main>;
- return <Home store={store} email={session.user.email??''} onSignOut={async()=>{await store.flush();await onSignOut()}}/>;
+ return <><AdminPanel actor={session.user.id} onPreview={setPreview}/>{!preview&&<Home store={store} email={session.user.email??''} onSignOut={async()=>{await store.flush();await onSignOut()}}/>}</>;
 }
 function authMessage(error:unknown){
  const code=(error as {code?:string})?.code;
