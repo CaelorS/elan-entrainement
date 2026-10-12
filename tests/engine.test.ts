@@ -1,5 +1,5 @@
 import {measureFor,distanceFor,rowMeasure,rowDistance,targetLabel,cycleState,primaryRows,hasWeight,entryLabel} from '../lib/activity.ts';
-import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {compile,enter,makeRun,suggest,taskLoad,finishRun,startExecution,rowFor,completeExecution,confirmLoad,validateExecution,completeFiller,togglePause,restartTimer,isLastSet,nextSet} from '../lib/engine.ts';import type {Program,Session,Row,Run} from '../lib/types.ts';
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {skipExercise,skipFiller,compile,enter,makeRun,suggest,taskLoad,finishRun,startExecution,rowFor,completeExecution,confirmLoad,validateExecution,completeFiller,togglePause,restartTimer,isLastSet,nextSet} from '../lib/engine.ts';import type {Program,Session,Row,Run} from '../lib/types.ts';
 const p=JSON.parse(readFileSync(new URL('../public/data/programme.json',import.meta.url),'utf8')) as Program;const model=p.modeles.find(m=>m.id==='bas_lourde')!;const squat=p.catalogue.find(e=>e.id==='squat')!,entry=model.exercices.find(e=>e.exercice_id==='squat')!;
 const session=(days:number,feedback='ok',reps=5,charge=50):Session=>({seance_uuid:crypto.randomUUID(),date:'2026-10-01',seance_id:'bas_lourde',seance_version:1,nom:'Test',heure_debut:new Date(Date.now()-days*86400000).toISOString(),heure_fin:new Date().toISOString(),duree_min:45,exercices_prevus:3,exercices_faits:3,volume_kg:1000,rpe_global:5,ressenti:'',records:[],statut:'terminee',series:Array.from({length:4},(_,i)=>({exercice_id:'squat',charge_kg:charge,reps_faites:reps,approche:false,cote:'bilateral',index_serie:i+1} as Row)),retours:[{exercice_id:'squat',retour:feedback} as any]});
 test('demo catalogue and models are consistent',()=>{assert.equal(p.catalogue.length,34);assert.equal(p.modeles.length,5);for(const m of p.modeles)for(const e of m.exercices)assert.ok(p.catalogue.some(x=>x.id===e.exercice_id))});
@@ -161,4 +161,19 @@ test('default revisions update only affected entries and preserve history, custo
  assert.equal(migrated.program.modeles[0].exercices[1].series,7);assert.equal(migrated.program.modeles[0].version,4);
  assert.equal(migrated.sessions,data.sessions);assert.equal(migrated.running,data.running);assert.ok(migrated.pending.includes('program'));
  assert.equal(migrateData(migrated,defaults),migrated);
+});
+
+test('skip exercise bypasses remaining sets, rests and review without inventing completed rows',()=>{
+ const m={...model,exercices:[{...entry,series:3,approche:true,ordre:1},{...entry,exercice_id:'hip_thrust',series:1,approche:false,ordre:2}]};
+ const run=makeRun(m,p,[],false),next=skipExercise(run,12345);
+ assert.equal(next.tasks[next.cursor].ex.id,'hip_thrust');assert.equal(next.rows.length,0);
+ const end=skipExercise(next,12346);assert.equal(end.phase,'BILAN');assert.equal(end.rows.length,0);assert.equal(end.finishedAt,12346);
+ const recorded={...run,rows:[{exercice_id:'squat'} as Row]};assert.equal(skipExercise(recorded).rows.length,1);
+});
+test('skip filler preserves recovery and never records skipped work',()=>{
+ const run=makeRun(model,p,[],false),task=run.tasks[0];const f={...task,warmup:false,id:'f',ex:p.catalogue.find(e=>e.id==='squat_isometrique')!,seconds:120,entry:{...task.entry,mesure:'duration' as const,duree_s:120}};
+ const resting={...run,tasks:[{...task,kind:'rest' as const,fillers:[f]}],cursor:0,phase:'REST' as const,deadline:99999,fillerDeadline:5000,fillerIndex:0};
+ const skipped=skipFiller(resting);assert.equal(skipped.deadline,99999);assert.equal(skipped.fillerDeadline,null);assert.equal(skipped.fillerIndex,1);assert.equal(skipped.rows.length,0);
+ const held=rowFor({...resting,angle_deg:110,fillerAt:1000},f,20,false,true,31000);assert.equal(held.angle_deg,110);assert.equal(held.duree_s,30);assert.equal(held.mesure,'duration');assert.equal(held.reps_faites,0);
+ const reps={...f,entry:{...f.entry,mesure:'reps' as const,reps_max:10,duree_s:0},seconds:0,reps:10};const row=rowFor({...resting,filler_reps:8},reps,20,false,true,1000);assert.equal(row.reps_faites,8);assert.equal(row.mesure,'reps');assert.equal(row.charge_applicable,false);assert.equal(row.rir_ressenti,null);
 });

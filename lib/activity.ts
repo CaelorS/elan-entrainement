@@ -37,3 +37,5 @@ export function cycleState(task:Task,startedAt:number,now:number){
  const period=cycle.work_s+cycle.rest_s,elapsed=Math.max(0,(now-startedAt)/1000),position=elapsed%period;
  return {index:Math.min(cycle.count,Math.floor(elapsed/period)+1),count:cycle.count,contract:position<cycle.work_s,remaining:Math.ceil(position<cycle.work_s?cycle.work_s-position:period-position),done:elapsed>=period*cycle.count};
 }
+
+export const hasAngle=(ex:Exercise)=>ex.id==='squat_isometrique';

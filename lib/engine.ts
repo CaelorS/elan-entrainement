@@ -96,7 +96,7 @@ export function enter(run:Run,cursor:number,now=Date.now()):Run {
  const sec=phase==='REVIEW'?AUTO_VALIDATE_SECONDS:phase==='REST'?t.seconds:phase==='COUNTDOWN'?5:0;
  const carriedRest=phase==='REST'&&run.restCursor===cursor?run.restDeadline:undefined;
  const f=t.fillers?.[0];
- const next:Run={...run,confirmedLoads:confirmed,cursor,phase,phaseAt:now,executionAt:undefined,executionEnd:undefined,duration_s:undefined,distance_m:distanceFor(t.ex,t.entry),deadline:carriedRest??(sec?now+sec*1000:null),restDeadline:phase==='REST'?carriedRest??now+t.seconds*1000:undefined,restCursor:phase==='REST'?cursor:undefined,pausedAt:null,reps:t.reps,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:f?.seconds?now+f.seconds*1000:null,fillerDone:[],savedAt:now};
+ const next:Run={...run,confirmedLoads:confirmed,cursor,phase,phaseAt:now,executionAt:undefined,executionEnd:undefined,duration_s:undefined,angle_deg:(f??t).entry.angle_deg,filler_reps:f?.reps,distance_m:distanceFor(t.ex,t.entry),deadline:carriedRest??(sec?now+sec*1000:null),restDeadline:phase==='REST'?carriedRest??now+t.seconds*1000:undefined,restCursor:phase==='REST'?cursor:undefined,pausedAt:null,reps:t.reps,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:f?.seconds?now+f.seconds*1000:null,fillerDone:[],savedAt:now};
  // Warm-up stages and the two sides of guided activities flow directly into one another.
  const previous=run.tasks[cursor-1];
  return phase==='COUNTDOWN'&&previous?.kind==='set'&&isGuided(previous)&&isGuided(t)?startExecution(next,now):next;
@@ -145,13 +145,24 @@ export function validateExecution(run:Run,barKg:number,auto=false,now=Date.now()
 export function completeFiller(run:Run,barKg:number,auto=false,now=Date.now()):Run {
  const task=run.tasks[run.cursor],f=task?.fillers?.[run.fillerIndex];if(run.phase!=='REST'||run.pausedAt!==null||!f)return run;
  const next=task.fillers?.[run.fillerIndex+1];
- return {...run,rows:[...run.rows,rowFor(run,f,barKg,auto,true,now)],fillerIndex:run.fillerIndex+1,fillerAt:now,fillerDeadline:next?.seconds?now+next.seconds*1000:null,fillerDone:[...run.fillerDone,f.id]};
+ return {...run,rows:[...run.rows,rowFor(run,f,barKg,auto,true,now)],fillerIndex:run.fillerIndex+1,filler_reps:next?.reps,angle_deg:next?.entry.angle_deg,fillerAt:now,fillerDeadline:next?.seconds?now+next.seconds*1000:null,fillerDone:[...run.fillerDone,f.id]};
 }
 export function rowFor(run:Run,t:Task,barKg:number,auto:boolean,filler=false,now=Date.now()):Row{
  const originalMeasure=measureFor(t.ex,t.entry),guided=filler||isGuided(t);
- const measure=guided&&originalMeasure==='reps'?'execution':originalMeasure,start=filler?run.fillerAt:(run.executionAt??run.phaseAt);
+ const measure=t.warmup&&originalMeasure==='reps'?'execution':originalMeasure,start=filler?run.fillerAt:(run.executionAt??run.phaseAt);
  const elapsed=Math.max(0,Math.round(((filler?now:run.executionEnd??now)-start)/1000));
- return {uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),heure_debut:new Date(start).toISOString(),seance_id:run.model.id,exercice_id:t.ex.id,index_serie:t.index,cote:t.side,charge_kg:guided?0:taskLoad(run,t,barKg),charge_applicable:!guided&&hasWeight(t.ex),charge_libelle:!guided&&hasLoad(t.ex)?run.bands[t.ex.id]??'':'',mesure:measure,distance_m:measure==='distance'?(filler?distanceFor(t.ex,t.entry):run.distance_m??distanceFor(t.ex,t.entry)):undefined,reps_prevues:measure==='reps'?t.reps:0,reps_faites:measure==='reps'?run.reps:0,duree_s:measure==='duration'&&!filler?(run.duration_s??elapsed):elapsed,rir_ressenti:measure==='reps'&&!guided&&!t.approach?run.rir:null,approche:t.approach,valide_auto:auto,intercalaire:filler,echauffement:!!t.warmup};
+ return {angle_deg:t.ex.id==='squat_isometrique'?run.angle_deg:undefined,uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),heure_debut:new Date(start).toISOString(),seance_id:run.model.id,exercice_id:t.ex.id,index_serie:t.index,cote:t.side,charge_kg:guided?0:taskLoad(run,t,barKg),charge_applicable:!guided&&hasWeight(t.ex),charge_libelle:!guided&&hasLoad(t.ex)?run.bands[t.ex.id]??'':'',mesure:measure,distance_m:measure==='distance'?(filler?distanceFor(t.ex,t.entry):run.distance_m??distanceFor(t.ex,t.entry)):undefined,reps_prevues:measure==='reps'?t.reps:0,reps_faites:measure==='reps'?(filler?run.filler_reps??t.reps:run.reps):0,duree_s:measure==='duration'&&!filler?(run.duration_s??elapsed):elapsed,rir_ressenti:measure==='reps'&&!guided&&!t.approach?run.rir:null,approche:t.approach,valide_auto:auto,intercalaire:filler,echauffement:!!t.warmup};
 }
 export function getRecords(rows:Row[],history:Session[]){return [...new Set(rows.filter(r=>!r.approche&&r.charge_kg>0).map(r=>r.exercice_id))].flatMap(id=>{const current=rows.filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const old=history.filter(s=>s.statut==='terminee').flatMap(s=>s.series).filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const max=Math.max(...current.map(r=>r.charge_kg)),prev=Math.max(0,...old.map(r=>r.charge_kg));return max>prev?[{id,old:prev,value:max}]:[]})}
 export function finishRun(run:Run,history:Session[],status:Session['statut']='terminee'):Session{const now=run.finishedAt??Date.now();return {seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),seance_id:run.model.id,seance_version:run.model.version,nom:run.model.nom,heure_debut:new Date(run.startedAt).toISOString(),heure_fin:new Date(now).toISOString(),duree_min:Math.round((now-run.startedAt)/6000)/10,exercices_prevus:new Set(run.tasks.filter(t=>t.kind==='set'&&!t.warmup).map(t=>t.ex.id)).size,exercices_faits:new Set(run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).map(r=>r.exercice_id)).size,volume_kg:run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).reduce((n,r)=>n+r.charge_kg*r.reps_faites,0),rpe_global:run.rpe,ressenti:run.note,records:getRecords(run.rows,history).map(x=>x.id),statut:status,series:run.rows,retours:Object.entries(run.retours).map(([id,retour])=>({uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),exercice_id:id,retour,saisi_en:'bilan_seance'}))}}
+
+// Skip remaining sets/sides in this block, along with their rests and review.
+export function skipExercise(run:Run,now=Date.now()):Run{
+ const t=run.tasks[run.cursor];if(!t||!['CHARGE','READY','COUNTDOWN','EXECUTION'].includes(run.phase))return run;
+ const next=run.tasks.findIndex((x,i)=>i>run.cursor&&x.kind==='set'&&(x.entry.ordre!==t.entry.ordre||x.ex.id!==t.ex.id));
+ return enter({...run,restCursor:undefined,restDeadline:undefined},next<0?run.tasks.length:next,now);
+}
+export function skipFiller(run:Run):Run{
+ if(run.phase!=='REST')return run;
+ return {...run,fillerIndex:run.tasks[run.cursor].fillers?.length??0,fillerDeadline:null,filler_reps:undefined,angle_deg:undefined};
+}

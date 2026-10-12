@@ -8,7 +8,7 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
  class Context {
   constructor(){instance=this} onstatechange:()=>void=()=>{};
   state='suspended';currentTime=10;sampleRate=100;destination={};resume(){this.state='running';this.onstatechange();return Promise.resolve()}
-  createBuffer(){return {}} createBufferSource(){return {connect(){},start(){},stop(){}}}
+  suspend(){this.state='suspended';return Promise.resolve()} createBuffer(){return {}} createBufferSource(){return {connect(){},start(){},stop(){}}}
   createGain(){return {gain:{setValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}}}
   createOscillator(){const tone={frequency:{value:0},starts:[] as number[],stops:[] as number[],connect(){},disconnect(){},start(at:number){this.starts.push(at)},stop(at?:number){this.stops.push(at??-1)},onended:null as unknown};tones.push(tone);return tone}
  }
@@ -16,7 +16,7 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
  const navDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator'),session={type:'auto'};Object.defineProperty(globalThis,'navigator',{value:{audioSession:session},configurable:true});
  Object.defineProperty(globalThis,'AudioContext',{value:Context,configurable:true});Date.now=()=>1000;
  try{
-  assert.equal(await unlockAudio(),true);assert.equal(session.type,'playback');scheduleCountdown(11000,'rest','beeps');
+  assert.equal(await unlockAudio(),true);assert.equal(session.type,'ambient');scheduleCountdown(11000,'rest','beeps');
   assert.deepEqual(tones.map(t=>t.starts[0]),[17,18,19,20]);
   assert.deepEqual(tones.map(t=>t.frequency.value),[750,750,750,1200]);
   stopSounds();assert.ok(tones.every(t=>t.stops.includes(-1)));
@@ -25,5 +25,5 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
   transitionSound('beeps');assert.equal(tones.at(-1)!.starts[0],10);
   stopSounds(true);assert.ok(!tones.at(-1)!.stops.includes(-1),'phase transition must not cut off the finish tone');
  assert.equal(await testAudio(),true);assert.deepEqual(tones.slice(-2).map(t=>t.frequency.value),[750,1200]);
- }finally{closeAudio();assert.equal(session.type,'auto');if(navDescriptor)Object.defineProperty(globalThis,'navigator',navDescriptor);else delete (globalThis as any).navigator;Date.now=oldNow;if(descriptor)Object.defineProperty(globalThis,'AudioContext',descriptor);else delete (globalThis as any).AudioContext}
+ }finally{closeAudio();assert.equal(session.type,'ambient');if(navDescriptor)Object.defineProperty(globalThis,'navigator',navDescriptor);else delete (globalThis as any).navigator;Date.now=oldNow;if(descriptor)Object.defineProperty(globalThis,'AudioContext',descriptor);else delete (globalThis as any).AudioContext}
 });
