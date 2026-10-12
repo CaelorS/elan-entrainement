@@ -177,3 +177,6 @@ test('skip filler preserves recovery and never records skipped work',()=>{
  const held=rowFor({...resting,angle_deg:110,fillerAt:1000},f,20,false,true,31000);assert.equal(held.angle_deg,110);assert.equal(held.duree_s,30);assert.equal(held.mesure,'duration');assert.equal(held.reps_faites,0);
  const reps={...f,entry:{...f.entry,mesure:'reps' as const,reps_max:10,duree_s:0},seconds:0,reps:10};const row=rowFor({...resting,filler_reps:8},reps,20,false,true,1000);assert.equal(row.reps_faites,8);assert.equal(row.mesure,'reps');assert.equal(row.charge_applicable,false);assert.equal(row.rir_ressenti,null);
 });
+
+import {manualLoadStep} from '../lib/activity.ts';
+test('manual weight controls use 2 kg for compound lifts and 1 kg for smaller exercises',()=>{for(const id of ['squat','hip_thrust','presse_45','souleve_terre_roumain','developpe_couche','tirage_vertical'])assert.equal(manualLoadStep({...squat,id}),2);for(const id of ['curl_marteau','elevations_laterales','triceps_pushdown','face_pull_poulie'])assert.equal(manualLoadStep({...squat,id}),1);assert.equal(squat.increment_kg,5);});
