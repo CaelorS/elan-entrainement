@@ -39,3 +39,24 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 
 .copy-session{margin:20px 0}.csv-fallback{width:100%;min-height:260px;background:#111713;color:#f5f7ef;border:1px solid #53614d;border-radius:10px;padding:12px;font:14px/1.5 monospace}
 @media(max-width:480px){.bottom-nav{gap:2px!important}.bottom-nav button{flex-direction:column;gap:3px;font-size:10px;padding:6px 3px;min-width:0;flex:1}}
+
+/* Compact headings and layouts whose children may have long native select options. */
+.home-heading{display:flex;align-items:center;flex-wrap:nowrap;gap:12px;margin:26px 0 22px}
+.home-heading h1.eyebrow{margin:0;font-size:12px;font-weight:700;letter-spacing:.13em;line-height:1.4;white-space:nowrap}
+.home-heading .date-chip{margin:0 0 0 auto;font-size:12px;padding:5px 10px}
+.history-heading,.progress-heading{align-items:stretch;flex-direction:column;gap:22px;margin-bottom:30px}
+.history-heading .inline-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:480px;gap:12px}
+.history-heading .inline-actions button{width:100%;min-height:48px}
+.weekly-stats{grid-template-columns:minmax(0,1fr)}
+.weekly-stats>div:last-child{grid-column:auto;border:0;padding:0}
+.model-editor,.edit-entry,.edit-entry-top,.edit-grid,.edit-grid label,.field-label,.row-body,.catalogue-item,.entry-list summary>span{min-width:0}
+.model-editor{width:100%;max-width:100%;grid-template-columns:minmax(0,1fr)}
+.model-editor input,.model-editor select,.model-editor textarea{width:100%;max-width:100%;min-width:0}
+.edit-entry-top select{flex:1 1 0;width:0;min-width:0;text-overflow:ellipsis}
+.edit-entry-top button{flex:0 0 38px}
+.edit-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.model-editor .inline-actions{flex-wrap:wrap}
+.library-heading>div:first-child{min-width:0}.library-heading h2,.entry-list summary strong,.catalogue-item summary strong{overflow-wrap:anywhere}
+.shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+.bottom-nav{left:0;right:0;margin-inline:auto;transform:none;bottom:calc(var(--nav-viewport-offset,0px) + max(10px,env(safe-area-inset-bottom)));max-width:calc(100% - 24px)}
+@media(max-width:760px){.home-heading{display:flex;margin-top:22px}.home-heading .date-chip{display:block;margin-top:0}.home-heading h1.eyebrow{font-size:11px;letter-spacing:.08em}.home-heading .date-chip{font-size:11px;padding:5px 8px}.edit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.history-heading .inline-actions{max-width:none}.history-heading>div:first-child,.progress-heading>div:first-child{margin-bottom:20px}.model-editor .day-picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.day-picker button{padding:10px 2px}.topbar{gap:16px}.topbar .icon-btn{flex-shrink:0}.top-label{min-width:0;text-align:right}}
