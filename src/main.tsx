@@ -8,6 +8,11 @@ import Home from '../app/page';
 import {AdminPanel} from '../components/admin-panel';
 import {useAppUpdates} from '../lib/updates';
 import '../app/globals.css';
+class StartupBoundary extends React.Component<{children:React.ReactNode},{error:string|null}>{
+ state:{error:string|null}={error:null};
+ static getDerivedStateFromError(error:Error){return {error:error?.name||'Erreur de démarrage'}}
+ render(){if(!this.state.error)return this.props.children;return <main className="auth-screen"><div className="auth-card"><h1>Élan n’a pas pu s’ouvrir.</h1><p>Une erreur a interrompu l’affichage. Tes données enregistrées n’ont pas été effacées.</p><p>Ferme les autres fenêtres Élan, puis recharge les fichiers de l’application.</p><button className="primary" onClick={()=>void (window as Window & {elanRepair?:()=>Promise<void>}).elanRepair?.()}>Réparer le chargement</button><p id="elan-repair-status" role="status"/><small>Diagnostic : {this.state.error}</small></div></main>}
+}
 function SignedIn({session,onSignOut}:{session:LocalAccount;onSignOut:()=>Promise<void>}){
  const store=useMemo(()=>new TrainingStore(session.user.id),[session.user.id]);
  const [exclusive,setExclusive]=useState<boolean|null>(null),[preview,setPreview]=useState(false);
@@ -57,4 +62,4 @@ function App(){
  if(session)return <SignedIn key={session.user.id} session={session} onSignOut={async()=>{const {error}=await supabase.auth.signOut({scope:'local'});if(error)throw error}}/>;
  return <main className="auth-screen"><div className="auth-card"><span className="brand">élan<span className="accent">.</span></span><p className="eyebrow">TON ENTRAÎNEMENT, À TON RYTHME</p><h1>Ton espace personnel.</h1><p>Retrouve ton programme et tes séances sur ton téléphone.</p><form onSubmit={signIn}><label className="field-label">Adresse e-mail<EditableInput type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label className="field-label">Mot de passe<EditableInput type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<p role="alert" className="auth-error">{error}</p>}<button className="primary" disabled={busy}>{busy?'Connexion…':'Se connecter'}</button><button type="button" className="text-button" disabled={busy} onClick={()=>{setForgot(true);setError('');setPassword('')}}>Mot de passe oublié</button></form><p className="subtle">Connecte-toi avec ton compte Élan. Après la première connexion, l’application reste disponible hors connexion sur cet appareil.</p><p className="install-note">Sur iPhone : Safari → Partager → Sur l’écran d’accueil.</p></div></main>;
 }
-createRoot(document.getElementById('root')!).render(<App/>);
+createRoot(document.getElementById('root')!).render(<StartupBoundary><App/></StartupBoundary>);
