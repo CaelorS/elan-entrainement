@@ -12,10 +12,11 @@ test('variable holds preserve prescribed durations on both sides, and machines u
  assert.equal(hasWeight({...squat,type_charge:'machine'}),true);
  assert.equal(hasWeight({...squat,type_charge:'poulie'}),true);
 });
-test('two full sessions progress, a hard feedback cancels progression',()=>{assert.equal(suggest(squat,entry,model.id,[session(2),session(9)]).charge,55);assert.equal(suggest(squat,entry,model.id,[session(2,'trop_dur'),session(9)]).charge,45);assert.equal(suggest(squat,entry,model.id,[session(2,'facile'),session(9)]).charge,60)});
+test('latest feedback adjusts only once by two kg',()=>{assert.equal(suggest(squat,entry,model.id,[session(2),session(9)]).charge,50);assert.equal(suggest(squat,entry,model.id,[session(2,'trop_dur'),session(9)]).charge,48);assert.equal(suggest(squat,entry,model.id,[session(2,'facile'),session(9)]).charge,52)});
 test('failed sets do not automatically reduce load',()=>assert.equal(suggest(squat,entry,model.id,[session(2,'ok',3)]).charge,50));
-test('long breaks reduce load or request fresh discovery',()=>{assert.equal(suggest(squat,entry,model.id,[session(30)]).charge,40);assert.equal(suggest(squat,entry,model.id,[session(70)]).charge,null)});
-test('90% references heavy session once',()=>assert.equal(suggest(squat,entry,'bas_90',[session(2)]).charge,45));
+test('older reference remains available',()=>assert.equal(suggest(squat,entry,model.id,[session(70)]).charge,50));
+test('latest exercise reference crosses session boundaries',()=>{const recent={...session(1,'facile',5,42),seance_id:'other'};assert.equal(suggest(squat,entry,'bas_90',[session(2),recent]).charge,44)});
+test('approach loads are even and never below the empty bar',()=>{const run=makeRun(model,p,[],false);run.loads.squat=56;const task=run.tasks.find(t=>t.ex.id==='squat'&&t.approach)!;assert.equal(taskLoad(run,{...task,factor:.75},8),42);assert.equal(taskLoad(run,{...task,factor:0},8),8);run.loads.squat=10;assert.equal(taskLoad(run,{...task,factor:.75},20),20)});
 
 import {migrateData} from '../lib/migrations.ts';
 import type {LocalData} from '../lib/types.ts';
@@ -38,7 +39,7 @@ test('guided warm-up chains four stages totalling six minutes, without validatio
 test('approaches use empty bar / 75% / 90%, with full / three-fifths / two-fifths reps',()=>{
  const run=forceRun(),tasks=run.tasks.filter(t=>t.kind==='set'&&t.approach);
  assert.deepEqual(tasks.map(t=>t.factor),[0,.75,.9]);assert.deepEqual(tasks.map(t=>t.reps),[5,3,2]);
- assert.deepEqual(tasks.map(t=>taskLoad(run,t,20)),[20,37.5,45]);
+ assert.deepEqual(tasks.map(t=>taskLoad(run,t,20)),[20,38,46]);
  const fixture={...model,exercices:[{...entry,reps_min:10,reps_max:10}]};
  assert.deepEqual(compile(fixture,p).filter(t=>t.kind==='set'&&t.approach).map(t=>t.reps),[10,6,4]);
 });

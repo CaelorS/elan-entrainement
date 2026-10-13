@@ -1,4 +1,4 @@
-import {measureFor,hasWeight,hasLoad,distanceFor,estimatedSeconds,isGuided} from './activity.ts';
+import {measureFor,hasWeight,hasLoad,distanceFor,estimatedSeconds,isGuided,manualLoadStep} from './activity.ts';
 import type {Program,Model,Entry,Exercise,Task,Session,Run,Row,Feedback} from './types';
 export const AUTO_VALIDATE_SECONDS=8;
 export const uid=()=>crypto.randomUUID();
@@ -9,26 +9,13 @@ const mode=(a:number[])=>a.reduce((best,v)=>a.filter(x=>x===v).length>a.filter(x
 export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now=Date.now()){
  const all=history.filter(s=>s.statut==='terminee'&&s.series.some(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut));
  const latest=all[0];if(!latest)return {charge:null,motif:'Première séance',reference:'Choisis une charge confortable.'};
- const age=(now-new Date(latest.heure_debut).getTime())/86400000;
- if(age>60)return {charge:null,motif:'Reprise après une longue coupure',reference:'Définis une nouvelle charge de départ.'};
- // Friday uses the heavy session as its reference, so 90% never compounds.
- const referenceSid=sid==='bas_90'&&['squat','souleve_terre'].includes(ex.id)?'bas_lourde':sid;
- let sessions=all.filter(s=>s.seance_id===referenceSid&&(now-new Date(s.heure_debut).getTime())/86400000<=56);
- if(!sessions.length)sessions=all.slice(0,2);
- const rows=(s:Session)=>s.series.filter(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement);
- let ref=mode(rows(sessions[0]).map(r=>r.charge_kg));
- if(ex.unilateral){const sides=['gauche','droite'].map(side=>rows(sessions[0]).filter(r=>r.cote===side));if(sides.every(x=>x.length))ref=Math.min(...sides.map(x=>mode(x.map(r=>r.charge_kg))));}
- const complete=(s:Session)=>{const r=rows(s);return r.length>=entry.series*(ex.unilateral?2:1)&&r.every(x=>x.reps_faites>=entry.reps_max)};
- const progress=sessions.length>=2&&sessions.slice(0,2).every(complete);
- let charge=ref+(progress?ex.increment_kg:0),motif=progress?'Progression':'Consolidation';
- if(rows(sessions[0]).some(x=>x.reps_faites<entry.reps_min))motif='Reprise de la charge';
- const fb=all[0].retours.find(x=>x.exercice_id===ex.id)?.retour;
- if(fb==='trop_dur'){charge=ref-ex.increment_kg;motif='Ajustement · trop dur'}
- if(fb==='facile'){charge+=ex.increment_kg;motif='Ajustement · facile'}
- if(sid==='bas_90'&&referenceSid==='bas_lourde'&&sessions[0].seance_id==='bas_lourde'){charge=Math.floor(charge*.9/ex.increment_kg)*ex.increment_kg;motif+=' · 90 %'}
- if(age>21){charge=ref*.8;motif='Reprise après coupure'}
- charge=Math.max(0,Math.round(charge/ex.increment_kg)*ex.increment_kg);
- return {charge,motif,reference:`${fmt(ref)} kg le ${new Date(sessions[0].heure_debut).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`};
+ const rows=latest.series.filter(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement&&Number.isFinite(r.charge_kg)&&r.charge_applicable!==false);
+ if(!rows.length)return {charge:null,motif:'Charge non renseignée',reference:'Choisis une charge confortable.'};
+ const ref=rows.at(-1)!.charge_kg;
+ const fb=latest.retours.find(x=>x.exercice_id===ex.id)?.retour;
+ const step=manualLoadStep(ex);
+ const charge=Math.max(0,ref+(fb==='facile'?step:fb==='trop_dur'?-step:0));
+ return {charge,motif:fb==='facile'?`Facile · +${step} kg`:fb==='trop_dur'?`Difficile · −${step} kg`:'Même charge que la dernière séance',reference:`${fmt(ref)} kg · ${latest.nom} · ${new Date(latest.heure_debut).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`};
 }
 function sets(ex:Exercise,e:Entry,approach=false,factor=1,indexOffset=0):Task[]{
  const measure=measureFor(ex,e),out:Task[]=[];
@@ -96,7 +83,7 @@ export function enter(run:Run,cursor:number,now=Date.now()):Run {
  const sec=phase==='REVIEW'?AUTO_VALIDATE_SECONDS:phase==='REST'?t.seconds:phase==='COUNTDOWN'?5:0;
  const carriedRest=phase==='REST'&&run.restCursor===cursor?run.restDeadline:undefined;
  const f=t.fillers?.[0];
- const next:Run={...run,confirmedLoads:confirmed,cursor,phase,phaseAt:now,executionAt:undefined,executionEnd:undefined,duration_s:undefined,angle_deg:(f??t).entry.angle_deg,filler_reps:f?.reps,distance_m:distanceFor(t.ex,t.entry),deadline:carriedRest??(sec?now+sec*1000:null),restDeadline:phase==='REST'?carriedRest??now+t.seconds*1000:undefined,restCursor:phase==='REST'?cursor:undefined,pausedAt:null,reps:t.reps,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:f?.seconds?now+f.seconds*1000:null,fillerDone:[],savedAt:now};
+ const next:Run={...run,confirmedLoads:confirmed,cursor,phase,phaseAt:now,executionAt:undefined,executionEnd:undefined,duration_s:undefined,angle_deg:(f??t).entry.angle_deg,filler_reps:f?.reps,distance_m:distanceFor(t.ex,t.entry),deadline:carriedRest??(sec?now+sec*1000:null),restDeadline:phase==='REST'?carriedRest??now+t.seconds*1000:undefined,restCursor:phase==='REST'?cursor:undefined,pausedAt:null,reps:t.reps,setNote:'',rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:f?.seconds?now+f.seconds*1000:null,fillerDone:[],savedAt:now};
  // Warm-up stages and the two sides of guided activities flow directly into one another.
  const previous=run.tasks[cursor-1];
  return phase==='COUNTDOWN'&&previous?.kind==='set'&&isGuided(previous)&&isGuided(t)?startExecution(next,now):next;
@@ -129,7 +116,7 @@ export function nextSet(run:Run){return run.tasks.slice(run.cursor+1).find(t=>t.
 export function isLastSet(run:Run){const task=run.tasks[run.cursor];return task?.kind==='set'&&!task.approach&&!isGuided(task)&&!run.tasks.slice(run.cursor+1).some(t=>t.kind==='set'&&t.ex.id===task.ex.id&&!t.approach)}
 export function makeRun(model:Model,program:Program,history:Session[],reduced:boolean):Run{const now=Date.now();if(model.id==='bloc_matin'&&![2,5].includes(new Date(now).getDay())){const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);const moved=new Set(history.filter(s=>s.statut==='terminee'&&s.date===localDate(yesterday)).flatMap(s=>s.series.filter(r=>r.intercalaire).map(r=>r.exercice_id)));model={...model,exercices:model.exercices.filter(e=>!moved.has(e.exercice_id))}}const tasks=compile(model,program,reduced);const suggestions:Run['suggestions']={};const loads:Run['loads']={};const bands:Run['bands']={};for(const t of tasks){if(!hasLoad(t.ex)||suggestions[t.ex.id])continue;suggestions[t.ex.id]=suggest(t.ex,t.entry,model.id,history);if(suggestions[t.ex.id].charge!==null)loads[t.ex.id]=suggestions[t.ex.id].charge!;const previous=history.flatMap(s=>s.series).filter(r=>r.exercice_id===t.ex.id&&r.charge_libelle).at(-1);if(previous)bands[t.ex.id]=previous.charge_libelle;}
  return enter({uuid:uid(),model,tasks,cursor:0,phase:'COUNTDOWN',startedAt:now,phaseAt:now,deadline:null,pausedAt:null,rows:[],retours:{},loads,bands,reps:0,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:null,fillerDone:[],suggestions,savedAt:now,rpe:null,note:'',reduced},0,now)}
-export function taskLoad(run:Run,t:Task,barKg:number){if(!hasWeight(t.ex))return 0;const base=run.loads[t.ex.id]??0;if(!t.approach)return base;if(t.factor===0)return barKg;return Math.round(base*t.factor/2.5)*2.5;}
+export function taskLoad(run:Run,t:Task,barKg:number){if(!hasWeight(t.ex))return 0;const base=run.loads[t.ex.id]??0;if(!t.approach)return base;if(t.factor===0)return barKg;return Math.max(barKg,Math.round(base*t.factor/2)*2);}
 export function completeExecution(run:Run,now=Date.now(),barKg=20,auto=false):Run {
  if(run.phase!=='EXECUTION'||run.pausedAt!==null)return run;
  const task=run.tasks[run.cursor],end=run.deadline?Math.min(now,run.deadline):now;
@@ -151,7 +138,7 @@ export function rowFor(run:Run,t:Task,barKg:number,auto:boolean,filler=false,now
  const originalMeasure=measureFor(t.ex,t.entry),guided=filler||isGuided(t);
  const measure=t.warmup&&originalMeasure==='reps'?'execution':originalMeasure,start=filler?run.fillerAt:(run.executionAt??run.phaseAt);
  const elapsed=Math.max(0,Math.round(((filler?now:run.executionEnd??now)-start)/1000));
- return {angle_deg:t.ex.id==='squat_isometrique'?run.angle_deg:undefined,uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),heure_debut:new Date(start).toISOString(),seance_id:run.model.id,exercice_id:t.ex.id,index_serie:t.index,cote:t.side,charge_kg:guided?0:taskLoad(run,t,barKg),charge_applicable:!guided&&hasWeight(t.ex),charge_libelle:!guided&&hasLoad(t.ex)?run.bands[t.ex.id]??'':'',mesure:measure,distance_m:measure==='distance'?(filler?distanceFor(t.ex,t.entry):run.distance_m??distanceFor(t.ex,t.entry)):undefined,reps_prevues:measure==='reps'?t.reps:0,reps_faites:measure==='reps'?(filler?run.filler_reps??t.reps:run.reps):0,duree_s:measure==='duration'&&!filler?(run.duration_s??elapsed):elapsed,rir_ressenti:measure==='reps'&&!guided&&!t.approach?run.rir:null,approche:t.approach,valide_auto:auto,intercalaire:filler,echauffement:!!t.warmup};
+ return {commentaire:!filler&&!guided?run.setNote:undefined,angle_deg:t.ex.id==='squat_isometrique'?run.angle_deg:undefined,uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),heure_debut:new Date(start).toISOString(),seance_id:run.model.id,exercice_id:t.ex.id,index_serie:t.index,cote:t.side,charge_kg:guided?0:taskLoad(run,t,barKg),charge_applicable:!guided&&hasWeight(t.ex),charge_libelle:!guided&&hasLoad(t.ex)?run.bands[t.ex.id]??'':'',mesure:measure,distance_m:measure==='distance'?(filler?distanceFor(t.ex,t.entry):run.distance_m??distanceFor(t.ex,t.entry)):undefined,reps_prevues:measure==='reps'?t.reps:0,reps_faites:measure==='reps'?(filler?run.filler_reps??t.reps:run.reps):0,duree_s:measure==='duration'&&!filler?(run.duration_s??elapsed):elapsed,rir_ressenti:measure==='reps'&&!guided&&!t.approach?run.rir:null,approche:t.approach,valide_auto:auto,intercalaire:filler,echauffement:!!t.warmup};
 }
 export function getRecords(rows:Row[],history:Session[]){return [...new Set(rows.filter(r=>!r.approche&&r.charge_kg>0).map(r=>r.exercice_id))].flatMap(id=>{const current=rows.filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const old=history.filter(s=>s.statut==='terminee').flatMap(s=>s.series).filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const max=Math.max(...current.map(r=>r.charge_kg)),prev=Math.max(0,...old.map(r=>r.charge_kg));return max>prev?[{id,old:prev,value:max}]:[]})}
 export function finishRun(run:Run,history:Session[],status:Session['statut']='terminee'):Session{const now=run.finishedAt??Date.now();return {seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),seance_id:run.model.id,seance_version:run.model.version,nom:run.model.nom,heure_debut:new Date(run.startedAt).toISOString(),heure_fin:new Date(now).toISOString(),duree_min:Math.round((now-run.startedAt)/6000)/10,exercices_prevus:new Set(run.tasks.filter(t=>t.kind==='set'&&!t.warmup).map(t=>t.ex.id)).size,exercices_faits:new Set(run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).map(r=>r.exercice_id)).size,volume_kg:run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).reduce((n,r)=>n+r.charge_kg*r.reps_faites,0),rpe_global:run.rpe,ressenti:run.note,records:getRecords(run.rows,history).map(x=>x.id),statut:status,series:run.rows,retours:Object.entries(run.retours).map(([id,retour])=>({uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),exercice_id:id,retour,saisi_en:'bilan_seance'}))}}
