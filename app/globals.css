@@ -36,3 +36,6 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .toolbar-audio{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;border:1px solid #53614d;border-radius:12px;background:#283129;color:#f5f7ef;font-size:11px}
 .toolbar-audio select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
 .toolbar-audio:focus-within{outline:2px solid var(--primary);outline-offset:2px}
+
+.copy-session{margin:20px 0}.csv-fallback{width:100%;min-height:260px;background:#111713;color:#f5f7ef;border:1px solid #53614d;border-radius:10px;padding:12px;font:14px/1.5 monospace}
+@media(max-width:480px){.bottom-nav{gap:2px!important}.bottom-nav button{flex-direction:column;gap:3px;font-size:10px;padding:6px 3px;min-width:0;flex:1}}
