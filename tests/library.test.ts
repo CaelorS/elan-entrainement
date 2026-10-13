@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {moveEntry,orderedEntries} from '../lib/library.ts';import type {Model,Entry} from '../lib/types.ts';
+const entry=(id:string,ordre:number,parents:number[]=[])=>({exercice_id:id,ordre,intercalaire_de:parents}) as Entry;
+const model={exercices:[entry('squat',1),entry('deadlift',2),entry('ankle',3,[1]),entry('chair',4,[2])]} as Model;
+test('moving a principal exercise preserves insert associations and leaves source untouched',()=>{const changed=moveEntry(model,2,-1);assert.deepEqual(orderedEntries(changed).map(e=>e.exercice_id),['deadlift','chair','squat','ankle']);assert.equal(changed.exercices.find(e=>e.exercice_id==='ankle')?.intercalaire_de[0],changed.exercices.find(e=>e.exercice_id==='squat')?.ordre);assert.deepEqual(model.exercices.map(e=>e.exercice_id),['squat','deadlift','ankle','chair']);assert.equal(moveEntry(model,1,-1),model)});
+test('moving inserts stays within related exercises and preserves every entry',()=>{const m={...model,exercices:[...model.exercices,entry('foot',5,[1])]};const changed=moveEntry(m,5,-1);assert.deepEqual(orderedEntries(changed).map(e=>e.exercice_id),['squat','foot','ankle','deadlift','chair']);assert.equal(changed.exercices.length,5)});
