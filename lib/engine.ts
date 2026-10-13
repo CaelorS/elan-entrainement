@@ -166,3 +166,38 @@ export function skipFiller(run:Run):Run{
  if(run.phase!=='REST')return run;
  return {...run,fillerIndex:run.tasks[run.cursor].fillers?.length??0,fillerDeadline:null,filler_reps:undefined,angle_deg:undefined};
 }
+
+// Move directly into the next set; only an unknown load still needs user input.
+export function advanceWorkout(run:Run,now=Date.now()):Run {
+ let cursor=run.cursor+1;
+ while(run.tasks[cursor]?.kind==='review')cursor++;
+ return startExecution(enter(run,cursor,now),now);
+}
+export function tickWorkout(run:Run,barKg:number,now=Date.now()):Run {
+ if(run.pausedAt!==null)return run;
+ if(run.phase==='REST'){
+  let next=run;
+  // Complete only timed inserts that actually ended within the rest window.
+  while(next.fillerDeadline&&next.fillerDeadline<=now&&next.fillerDeadline<=(run.deadline??Infinity)){
+   next=completeFiller(next,barKg,true,next.fillerDeadline);
+  }
+  return run.deadline!==null&&now>=run.deadline?advanceWorkout(next,now):next;
+ }
+ if(run.phase==='VALIDATION'&&run.restDeadline!==undefined&&now>=run.restDeadline){
+  return advanceWorkout(validateExecution(run,barKg,true,now),now);
+ }
+ if(run.deadline===null||now<run.deadline)return run;
+ if(run.phase==='COUNTDOWN')return startExecution(run,now);
+ if(run.phase==='EXECUTION')return completeExecution(run,now,barKg,true);
+ if(run.phase==='VALIDATION'&&run.auto)return validateExecution(run,barKg,true,now);
+ if(run.phase==='REVIEW'&&run.auto)return advanceWorkout(run,now);
+ return run;
+}
+export function restartWorkout(run:Run,now=Date.now()):Run {
+ const active=run.pausedAt===null?run:togglePause(run,now);
+ if(active.phase==='REST')return restartTimer(active,active.tasks[active.cursor].fillers?.[active.fillerIndex]?'activity':'rest',now);
+ if(active.phase==='EXECUTION')return {...active,phaseAt:now,executionAt:now,deadline:active.tasks[active.cursor].seconds?now+active.tasks[active.cursor].seconds*1000:null};
+ if(active.phase==='COUNTDOWN')return {...active,phaseAt:now,deadline:now+5000};
+ if(active.phase==='VALIDATION'||active.phase==='REVIEW')return {...active,auto:true,phaseAt:now,deadline:now+AUTO_VALIDATE_SECONDS*1000};
+ return active;
+}

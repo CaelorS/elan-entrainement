@@ -180,3 +180,30 @@ test('skip filler preserves recovery and never records skipped work',()=>{
 
 import {manualLoadStep} from '../lib/activity.ts';
 test('manual weight controls use 2 kg for compound lifts and 1 kg for smaller exercises',()=>{for(const id of ['squat','hip_thrust','presse_45','souleve_terre_roumain','developpe_couche','tirage_vertical'])assert.equal(manualLoadStep({...squat,id}),2);for(const id of ['curl_marteau','elevations_laterales','triceps_pushdown','face_pull_poulie'])assert.equal(manualLoadStep({...squat,id}),1);assert.equal(squat.increment_kg,5);});
+
+import {tickWorkout,advanceWorkout,restartWorkout} from '../lib/engine.ts';
+test('rest expiry starts the next approach immediately without a ready screen',()=>{
+ let run=forceRun();run=confirmLoad(run,1000);run=startExecution(run,6000);run=completeExecution(run,10000);run=validateExecution(run,20,false,11000);
+ assert.equal(run.phase,'REST');const end=run.deadline!;run=tickWorkout(run,20,end);
+ assert.equal(run.phase,'EXECUTION');assert.equal(run.tasks[run.cursor].factor,.75);assert.equal(run.executionAt,end);
+});
+test('expired rest skips an unfinished insert without recording it',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:100};
+ run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);const end=run.deadline!;
+ run=tickWorkout(run,20,end);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows.length,0);
+});
+test('completed timed insert is recorded at rest expiry and pause freezes transitions',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:45};
+ run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);
+ const paused=togglePause(run,2000);assert.equal(tickWorkout(paused,20,100000),paused);
+ run=tickWorkout(run,20,run.deadline!);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows.length,1);assert.equal(run.rows[0].intercalaire,true);
+});
+test('rest expiring while statistics are edited retains those statistics and starts next set',()=>{
+ let run=startExecution(confirmLoad(forceRun(),1000),6000);run=completeExecution(run,10000);run={...run,reps:4,auto:false,deadline:null};
+ run=tickWorkout(run,20,run.restDeadline!);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows[0].reps_faites,4);
+});
+test('next exercise still requests an unconfirmed load and restart resumes paused countdown',()=>{
+ const run=forceRun();assert.equal(advanceWorkout({...run,cursor:-1},1000).phase,'CHARGE');
+ const countdown=confirmLoad(run,1000);const restarted=restartWorkout(togglePause(countdown,2000),3000);
+ assert.equal(restarted.pausedAt,null);assert.equal(restarted.deadline,8000);
+});
