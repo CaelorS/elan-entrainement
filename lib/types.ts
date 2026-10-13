@@ -1,6 +1,6 @@
 export type Measure='reps'|'duration'|'distance'|'execution';
 export type Feedback='trop_dur'|'ok'|'facile';
-export type Exercise={revision?:number;id:string;nom:string;categorie:string;type_charge:string;unilateral:boolean;increment_kg:number;consigne:string;vigilance:string;objectif:string;media:string;audio_nom:string;statut:string};
+export type Exercise={intercalaire?:boolean;reference_kg?:number;reference_at?:number;revision?:number;id:string;nom:string;categorie:string;type_charge:string;unilateral:boolean;increment_kg:number;consigne:string;vigilance:string;objectif:string;media:string;audio_nom:string;statut:string};
 export type WarmupStep={exercice_id:string;duree_s:number;consigne:string};
 export type Cycle={count:number;work_s:number;rest_s:number};
 export type Entry={angle_deg?:number;durees_s?:number[];revision?:number;steps?:WarmupStep[];cycle?:Cycle;mesure?:Measure;distance_m?:number;exercice_id:string;series:number;reps_min:number;reps_max:number;duree_s:number;repos_s:number;approche:boolean;intercalaire_de:number[];format:string;note:string;ordre:number;jours?:number[]};

@@ -3,7 +3,7 @@ import type {LocalData,Program} from './types';
 // Apply only explicitly revised default entries; preserve user models, history and active runs.
 export function migrateProgram(current:Program,defaults:Program):Program {
  let updated=(current.revision??0)<(defaults.revision??0);
- const catalogue=current.catalogue.map(ex=>{const update=defaults.catalogue.find(x=>x.id===ex.id);if(update&&(update.revision??0)>(ex.revision??0)){updated=true;return {...ex,...update}}return ex});
+ const catalogue=current.catalogue.map(ex=>{if(ex.intercalaire===undefined){updated=true;ex={...ex,intercalaire:current.modeles.some(m=>!m.actif_au&&m.exercices.some(e=>e.exercice_id===ex.id&&e.intercalaire_de.length>0))}}const update=defaults.catalogue.find(x=>x.id===ex.id);if(update&&(update.revision??0)>(ex.revision??0)){updated=true;return {...ex,...update}}return ex});
  const modeles=current.modeles.map(model=>{
   if(model.actif_au||model.archive)return model;
   const template=defaults.modeles.find(m=>m.id===model.id);if(!template)return model;

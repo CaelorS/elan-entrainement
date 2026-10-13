@@ -8,7 +8,7 @@ export const fmt=(n:number)=>new Intl.NumberFormat('fr-FR',{maximumFractionDigit
 const mode=(a:number[])=>a.reduce((best,v)=>a.filter(x=>x===v).length>a.filter(x=>x===best).length?v:best,a[0]??0);
 export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now=Date.now()){
  const all=history.filter(s=>s.statut==='terminee'&&s.series.some(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut));
- const latest=all[0];if(!latest)return {charge:null,motif:'Première séance',reference:'Choisis une charge confortable.'};
+ const latest=all[0];if(ex.reference_kg!==undefined&&(!latest||(ex.reference_at??0)>new Date(latest.heure_debut).getTime()))return {charge:ex.reference_kg,motif:'Référence personnalisée',reference:'Charge choisie dans la bibliothèque.'};if(!latest)return {charge:null,motif:'Première séance',reference:'Choisis une charge confortable.'};
  const rows=latest.series.filter(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement&&Number.isFinite(r.charge_kg)&&r.charge_applicable!==false);
  if(!rows.length)return {charge:null,motif:'Charge non renseignée',reference:'Choisis une charge confortable.'};
  const ref=rows.at(-1)!.charge_kg;
