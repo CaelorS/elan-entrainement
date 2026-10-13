@@ -60,3 +60,12 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
 .bottom-nav{left:0;right:0;margin-inline:auto;transform:none;bottom:calc(var(--nav-viewport-offset,0px) + max(10px,env(safe-area-inset-bottom)));max-width:calc(100% - 24px)}
 @media(max-width:760px){.home-heading{display:flex;margin-top:22px}.home-heading .date-chip{display:block;margin-top:0}.home-heading h1.eyebrow{font-size:11px;letter-spacing:.08em}.home-heading .date-chip{font-size:11px;padding:5px 8px}.edit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.history-heading .inline-actions{max-width:none}.history-heading>div:first-child,.progress-heading>div:first-child{margin-bottom:20px}.model-editor .day-picker{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.day-picker button{padding:10px 2px}.topbar{gap:16px}.topbar .icon-btn{flex-shrink:0}.top-label{min-width:0;text-align:right}}
+
+/* Shared page hierarchy: brand + tagline, then a quiet section title. */
+.section-title,.page-heading h1.section-title,.auth-card h1.section-title{font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.13em;line-height:1.5;text-transform:uppercase;color:#aabca5;margin:0}
+.page-heading{align-items:center;margin:26px 0 24px}
+.history-heading,.progress-heading{align-items:stretch;gap:24px}
+.auth-card h1.section-title{margin:26px 0 20px}
+.topbar .brand{flex-shrink:0}
+.topbar .top-label{min-width:0;text-align:right;line-height:1.5}
+@media(max-width:760px){.section-title,.page-heading h1.section-title,.auth-card h1.section-title{font-size:11px;letter-spacing:.08em}.home-heading{display:flex}.history-heading>div:first-child,.progress-heading>div:first-child{margin-bottom:0}.history-heading .inline-actions{margin-top:24px}.page-heading:not(.home-heading)>button{margin-top:20px}}
