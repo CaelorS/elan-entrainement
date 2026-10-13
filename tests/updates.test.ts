@@ -17,3 +17,11 @@ test('a PWA update waits for every window, and never activates while a workout i
  assert.equal(skipped,1);
  let intercepted=false;handlers.fetch({request:{url:'https://example.supabase.co/rest/v1/elan_programs',method:'GET'},respondWith:()=>{intercepted=true}});assert.equal(intercepted,false);
 });
+
+test('navigation uses the release-specific HTML even when a mutable index is stale',async()=>{
+ const handlers:Record<string,Function>={};let response:Promise<string>|undefined;const lookups:string[]=[];
+ const self={location:{href:'https://example.org/elan-entrainement/sw.js',origin:'https://example.org'},addEventListener:(event:string,handler:Function)=>handlers[event]=handler};
+ vm.runInNewContext(script.replace("const SHELL='';","const SHELL='/elan-entrainement/app-shell-new.html';"),{self,URL,caches:{open:async()=>({match:async(key:string)=>{lookups.push(key);return key.endsWith('app-shell-new.html')?'new HTML':'stale HTML'}})}});
+ handlers.fetch({request:{url:'https://example.org/elan-entrainement/',method:'GET',mode:'navigate'},respondWith:(p:Promise<string>)=>{response=p}});
+ assert.equal(await response,'new HTML');assert.deepEqual(lookups,['/elan-entrainement/app-shell-new.html']);
+});

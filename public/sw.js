@@ -1,6 +1,7 @@
 // Replaced with a content hash and an exhaustive asset list by the build script.
 const CACHE='elan-static-dev';
 const CORE=[];
+const SHELL='';
 const BASE=new URL('./',self.location.href).pathname;
 const PREFIX='elan-static-'+BASE+'-';
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE))));
@@ -26,7 +27,7 @@ self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET'||url.origin!==self.location.origin||!url.pathname.startsWith(BASE))return;
  if(event.request.mode==='navigate'){
   // Keep the document and assets on the same release until a safe activation.
-  event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(BASE))??fetch(event.request)));return;
+  event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(SHELL||BASE))??fetch(event.request)));return;
  }
  if(!CORE.includes(url.pathname))return;
  event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(url.pathname))??fetch(event.request)));

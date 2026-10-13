@@ -45,7 +45,8 @@ function App(){
   const {data:{subscription}}=supabase.auth.onAuthStateChange((event,s)=>{if(event==='PASSWORD_RECOVERY'){sessionStorage.setItem('elan-password-recovery','1');setRecovery(true);setError('')}if(event==='SIGNED_OUT'){rememberAccount(localStorage,null);setSession(null);setReady(true)}else accept(s)});
   return()=>{live=false;subscription.unsubscribe();window.removeEventListener('online',refresh)};
  },[]);
- useAppUpdates(!busy&&!recovery&&!password&&!email&&!forgot,async()=>{},!session||recovery);
+ // Discover updates at sign-in, but never reload while a password manager is open.
+ useAppUpdates(false,async()=>{},!session||recovery);
  async function signIn(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');try{const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error)throw error;setPassword('')}catch(error){setError(authMessage(error))}finally{setBusy(false)}}
  async function requestReset(e:React.FormEvent){e.preventDefault();setBusy(true);setError('');setNotice('');try{
   const redirect=new URL(import.meta.env.BASE_URL,location.origin);redirect.searchParams.set('recovery','1');

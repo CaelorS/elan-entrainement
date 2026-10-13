@@ -9,7 +9,7 @@ export function useAppUpdates(safe:boolean,flush:()=>Promise<void>,enabled=true)
   let live=true,registration:ServiceWorkerRegistration|undefined,reloading=false;
   let hadController=!!navigator.serviceWorker.controller;
   const controller=()=>{if(!hadController){hadController=true;return}if(!reloading){reloading=true;location.reload()}};
-  const message=async(event:MessageEvent)=>{if(event.data?.type==='PREPARE_UPDATE'){let ok=safeRef.current;try{if(ok)await flushRef.current()}catch{ok=false}event.source?.postMessage({type:'UPDATE_READY',requestId:event.data.requestId,safe:ok&&safeRef.current});}};
+  const message=async(event:MessageEvent)=>{if(event.data?.type==='PREPARE_UPDATE'){let ok=safeRef.current&&document.visibilityState==='visible'&&!document.activeElement?.matches('input,textarea,select,[contenteditable=true]');try{if(ok)await flushRef.current()}catch{ok=false}event.source?.postMessage({type:'UPDATE_READY',requestId:event.data.requestId,safe:ok&&safeRef.current});}};
   const check=()=>{if(document.visibilityState==='visible')void registration?.update().catch(()=>{})};
   const discover=()=>{if(live)setWaiting(registration?.waiting??null)};
   navigator.serviceWorker.addEventListener('message',message);
