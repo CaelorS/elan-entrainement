@@ -23,9 +23,9 @@ function sets(ex:Exercise,e:Entry,approach=false,factor=1,indexOffset=0):Task[]{
   out.push({id:uid(),kind:'set',ex,entry:e,index:i+indexOffset,side,approach,factor,reps:measure==='reps'?e.reps_max:0,seconds:measure==='duration'?(e.durees_s?.[i-1]??e.duree_s):0,warmup:ex.categorie==='echauffement'});
  return out;
 }
-export function compile(model:Model,program:Program,reduced=false,day=new Date().getDay()):Task[]{
+export function compile(model:Model,program:Program,reduced=false,day=new Date().getDay(),scheduleFillers=true):Task[]{
  const catalogue=new Map(program.catalogue.map(e=>[e.id,e]));
- const active=model.exercices.filter(e=>!e.jours||e.jours.includes(day));
+ const active=model.exercices.filter(e=>day===-1||!e.jours||e.jours.includes(day));
  const main=active.filter(e=>!e.intercalaire_de.length&&catalogue.has(e.exercice_id)).sort((a,b)=>a.ordre-b.ordre);
  const out:Task[]=[],slots:Task[]=[];
  main.forEach((raw,blockIndex)=>{
@@ -40,7 +40,7 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
   if(e.approche){[0,.75,.9].forEach((factor,i)=>{
    const reps=Math.max(1,Math.round(e.reps_max*[1,3/5,2/5][i]));
    const task=sets(ex,{...e,mesure:'reps',series:1,reps_min:reps,reps_max:reps},true,factor,i)[0];
-   out.push(task,{...task,id:uid(),kind:'rest',seconds:45,fillers:[]});
+   const rest:Task={...task,id:uid(),kind:'rest',seconds:e.approche_repos_s??90,fillers:[]};out.push(task,rest);slots.push(rest);
   })}
   const work=sets(ex,e);
   work.forEach((task,i)=>{
@@ -53,6 +53,7 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
   });
   if(ex.categorie==='force'&&blockIndex<main.length-1)out.push({id:uid(),kind:'review',ex,entry:e,index:e.series,side:'bilateral',approach:false,factor:1,reps:0,seconds:AUTO_VALIDATE_SECONDS});
  });
+ if(!scheduleFillers)return out;
  // One exercise per pause. Keep its sides/short holds together, but distribute long sets
  // (e.g. isometric holds) over separate pauses. Never create a post-session rest.
  const groups=active.filter(e=>e.intercalaire_de.length).flatMap(e=>{
@@ -66,9 +67,9 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
  groups.forEach((group,i)=>{
   const free=slots.filter(s=>!used.has(s));if(!free.length)return;
   const preferred=free.filter(s=>group[0].entry.intercalaire_de.includes(s.entry.ordre));
-  const candidates=preferred.length?preferred:free;
+  const candidates=preferred;if(!candidates.length)return;
   const target=(i+.5)*slots.length/groups.length-.5;
-  candidates.sort((a,b)=>Math.abs(slots.indexOf(a)-target)-Math.abs(slots.indexOf(b)-target));
+  const required=group.reduce((n,t)=>n+estimatedSeconds(t),0);candidates.sort((a,b)=>Number(b.seconds>=required)-Number(a.seconds>=required)||Math.abs(slots.indexOf(a)-target)-Math.abs(slots.indexOf(b)-target));
   const slot=candidates[0];used.add(slot);slot.fillers=group;
   // Isometric holds retain the prescribed recovery after the effort.
   if(group[0].ex.id==='squat_isometrique')slot.seconds=Math.max(slot.seconds,group.reduce((n,t)=>n+estimatedSeconds(t),0)+Math.max(90,group[0].entry.repos_s));
