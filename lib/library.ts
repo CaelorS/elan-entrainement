@@ -15,13 +15,17 @@ export function moveEntry(model:Model,order:number,direction:number):Model{
  const ids=new Map(entries.map((e,i)=>[e.ordre,i+1]));return {...model,exercices:entries.map((e,i)=>({...e,ordre:i+1,intercalaire_de:e.intercalaire_de.map(x=>ids.get(x)??x)}))};
 }
 
-export function dropEntry(model:Model,source:number,target:number,insert:boolean,after=false):Model{
- if(source===target)return model;
- const entries=orderedEntries(model),item=entries.find(e=>e.ordre===source),anchor=entries.find(e=>e.ordre===target);if(!item||!anchor)return model;
+export function previewDrop(model:Model,source:number,target:number,insert:boolean,after=false):Entry[]{
+ if(source===target)return orderedEntries(model);
+ const entries=orderedEntries(model),item=entries.find(e=>e.ordre===source),anchor=entries.find(e=>e.ordre===target);if(!item||!anchor)return entries;
  const next=entries.filter(e=>e.ordre!==source);let index=next.findIndex(e=>e.ordre===target);
  const parent=anchor.intercalaire_de[0]??anchor.ordre;
  const moved={...item,intercalaire_de:insert?[parent]:[]};
  next.splice(insert||after?index+1:index,0,moved);
+ return orderedEntries({...model,exercices:next});
+}
+export function dropEntry(model:Model,source:number,target:number,insert:boolean,after=false):Model{
+ const next=previewDrop(model,source,target,insert,after);
  const ids=new Map(next.map((e,i)=>[e.ordre,i+1]));return {...model,exercices:next.map((e,i)=>({...e,ordre:i+1,intercalaire_de:e.intercalaire_de.map(x=>ids.get(x)??x)}))};
 }
 export function duplicateInsert(model:Model,order:number):Model{
