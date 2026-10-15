@@ -180,3 +180,5 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 @media(max-width:360px){.workout-toolbar{gap:3px;padding:8px 5px}.workout-toolbar svg{width:20px}}
 
 .exercise-vigilance>summary{cursor:pointer;color:#c8b87c;padding:8px 0}.exercise-vigilance>summary svg{display:inline-block;vertical-align:middle;margin-right:6px}.exercise-vigilance>summary:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
+
+.numeric-chip::placeholder,.exercise-card-editor input::placeholder,.exercise-card-editor textarea::placeholder,.duration-column input::placeholder{color:#71806a!important;-webkit-text-fill-color:#71806a!important;opacity:1}
