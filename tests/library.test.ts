@@ -25,3 +25,22 @@ test('drag preview matches committed order and preserves the untouched model',()
  }
  assert.deepEqual(previewDrop(model,1,2,false,true).map(e=>e.exercice_id),['deadlift','chair','squat','ankle']);
 });
+
+import {newRestIssues,withRestTotals} from '../lib/library.ts';
+test('editing an unrelated warm-up does not block on an existing insert shortage or change rests',()=>{
+ const warm={...entry('warm',0),series:1,mesure:'duration' as const,duree_s:480,repos_s:0,approche:false,reps_min:0,reps_max:0};
+ const cat=[...catalogue,{...catalogue[0],id:'warm',categorie:'echauffement',type_charge:'aucune'}];
+ const before={...realistic,exercices:[warm,...realistic.exercices]};
+ assert.ok(restBudget(before,cat).reports.some(r=>r.missing>0));
+ const edited={...before,exercices:before.exercices.map(e=>e.ordre===0?{...e,duree_s:240}:e)};
+ assert.deepEqual(newRestIssues(edited,cat,before,cat),[]);
+ const saved=withRestTotals(edited,cat);assert.equal(saved.exercices[0].duree_s,240);assert.deepEqual(saved.exercices.map(e=>e.repos_s),before.exercices.map(e=>e.repos_s));
+});
+test('new or worsened insert shortages still warn; accepted correction affects only those parents',()=>{
+ const edited={...realistic,exercices:realistic.exercices.map(e=>e.ordre===3?{...e,duree_s:150}:e)};
+ const issues=newRestIssues(edited,catalogue,realistic);assert.deepEqual(issues.map(r=>r.order),[1]);
+ const fixed=fitRest(edited,catalogue,issues.map(r=>r.order));assert.equal(fixed.exercices.find(e=>e.ordre===1)!.repos_s,150);assert.equal(fixed.exercices.find(e=>e.ordre===2)!.repos_s,60);
+ assert.ok(newRestIssues(edited,catalogue).length>0);
+ const improved={...realistic,exercices:realistic.exercices.map(e=>e.ordre===3?{...e,duree_s:80}:e)};assert.deepEqual(newRestIssues(improved,catalogue,realistic),[]);
+ const reordered=moveEntry(realistic,2,-1);assert.deepEqual(newRestIssues(reordered,catalogue,realistic),[]);
+});

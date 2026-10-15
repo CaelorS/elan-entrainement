@@ -46,9 +46,19 @@ export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
  }
  return {reports,slots};
 }
-export function fitRest(model:Model,catalogue:import('./types').Exercise[]):Model{
+export function fitRest(model:Model,catalogue:import('./types').Exercise[],orders?:number[]):Model{
  const {reports}=restBudget(model,catalogue);
- let fixed={...model,exercices:model.exercices.map(e=>{const report=reports.find(r=>r.order===e.ordre);return report&&report.missing&&!report.extraSlots?{...e,repos_s:e.repos_s+report.missing,approche_repos_s:(e.approche_repos_s??90)+report.missing}:e})};
+ let fixed={...model,exercices:model.exercices.map(e=>{const report=reports.find(r=>r.order===e.ordre);return report&&(!orders||orders.includes(e.ordre))&&report.missing&&!report.extraSlots?{...e,repos_s:e.repos_s+report.missing,approche_repos_s:(e.approche_repos_s??90)+report.missing}:e})};
+ return withRestTotals(fixed,catalogue);
+}
+export function withRestTotals(fixed:Model,catalogue:import('./types').Exercise[]):Model{
  const final=restBudget(fixed,catalogue).reports;
  return {...fixed,exercices:fixed.exercices.map(e=>({...e,repos_total_s:final.find(r=>r.order===e.ordre)?.available??0}))};
+}
+
+// Warn only about a new or worsened shortage, not an unrelated pre-existing one.
+export function newRestIssues(draft:Model,catalogue:import('./types').Exercise[],previous?:Model,previousCatalogue=catalogue){
+ const keyed=(model:Model,cat:typeof catalogue)=>{const counts=new Map<string,number>();return restBudget(model,cat).reports.map(report=>{const id=model.exercices.find(e=>e.ordre===report.order)!.exercice_id;const n=counts.get(id)??0;counts.set(id,n+1);return {key:`${id}:${n}`,report}})};
+ const old=new Map(previous?keyed(previous,previousCatalogue).map(x=>[x.key,x.report]):[]);
+ return keyed(draft,catalogue).filter(({key,report})=>{const before=old.get(key);return (report.missing>0||report.extraSlots>0)&&(!before||report.missing>before.missing||report.extraSlots>before.extraSlots)}).map(x=>x.report);
 }
