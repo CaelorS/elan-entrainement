@@ -105,3 +105,12 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .streak,.calendar-legend,.calendar-legend>span{display:flex;align-items:center;gap:8px}.streak{color:#c5f567;margin:12px 0 20px}.compliance h4{margin:24px 0 12px}.calendar-legend{flex-wrap:wrap;font-size:12px;margin-top:16px;gap:18px}.week-cells .calendar-day.rest{background:#282c35;color:#b8c5dc}.week-cells .calendar-day.rest.done{background:#60728a;color:#fff}.week-cells .calendar-day.planned{border:1px dashed #637353;background:transparent;color:#bdd59c}.week-cells .calendar-day.rest.planned{border-color:#62748e;color:#a4b7d1}.calendar-day{min-width:0}
 
 .exercise-block{display:grid;gap:12px}.pause-slot{margin-left:22px}.pause-slot>p{font-size:12px;color:#a9b797;margin:4px 0 8px}.pause-slot .exercise-card-insert{margin-left:0;width:100%}.pause-empty{width:100%;min-height:55px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px dashed #697958;border-radius:14px;background:transparent;color:#a9b797;padding:12px}.pause-empty.pause-hover{background:#3b4825;border:2px dashed #c5f567;color:#c5f567}.unplaced-insert{border:1px dashed #c8b87c;padding:12px;border-radius:16px}.explicit-pauses{gap:24px}.exercise-block .compact-exercise{margin-bottom:0}
+
+/* Compact available pauses, expanding only while arranging cards. */
+.explicit-pauses .pause-empty{min-height:32px;padding:6px 10px;font-size:12px;gap:6px;transition:min-height .15s,padding .15s}
+.explicit-pauses.cards-drag-active .pause-empty{min-height:64px;padding:14px 10px}
+.exercise-card-title{gap:4px}.exercise-card-title h3{flex:1;min-width:0}.exercise-card-title .icon-btn{flex:0 0 30px;width:30px;height:32px}
+.quick-editor input,.exercise-card-editor input,.exercise-card-editor textarea,.exercise-card-editor select{font-size:16px!important;max-width:100%;min-width:0}
+.insert-picker{display:grid;gap:10px;max-height:45dvh;overflow-y:auto;padding:4px}
+.insert-picker .picker-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:6px;width:100%;margin:0;padding:14px}
+.picker-card.selected{outline:2px solid var(--accent,#c6f563)}.picker-card span,.picker-card small{font-size:13px}.picker-card small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

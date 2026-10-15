@@ -5,7 +5,7 @@ export function pauseSlots(model:Model,catalogue:Exercise[]){
  return compile({...model,pauses_explicites:true},{modeles:[model],catalogue},false,-1,false).filter(t=>t.kind==='rest').map(t=>({parent:t.entry.ordre,approche:t.approach,index:t.index,seconds:t.seconds}));
 }
 export function explicitPauses(model:Model,catalogue:Exercise[]):Model{
- if(model.pauses_explicites&&model.exercices.every(e=>!e.intercalaire_de.length||e.series===1))return model;
+ if(model.pauses_explicites)return model;
  const slots=pauseSlots(model,catalogue),used=new Set<string>(model.pauses_explicites?model.exercices.filter(e=>e.pause).map(e=>`${e.intercalaire_de[0]}:${e.pause!.approche}:${e.pause!.index}`):[]);let order=Math.max(0,...model.exercices.map(e=>e.ordre));
  const exercices=model.exercices.flatMap(e=>{
   if(!e.intercalaire_de.length)return [e];
