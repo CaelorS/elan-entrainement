@@ -178,3 +178,5 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .elan-dialog.exercise-switcher{position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;margin:0!important;translate:0 0!important;transform:translate(-50%,-50%)!important;width:calc(100vw - 28px)!important;max-width:540px!important;max-height:calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;grid-template-columns:minmax(0,1fr);animation:none!important}
 .exercise-switcher .switch-exercise-row strong{overflow-wrap:anywhere}
 @media(max-width:360px){.workout-toolbar{gap:3px;padding:8px 5px}.workout-toolbar svg{width:20px}}
+
+.exercise-vigilance>summary{cursor:pointer;color:#c8b87c;padding:8px 0}.exercise-vigilance>summary svg{display:inline-block;vertical-align:middle;margin-right:6px}.exercise-vigilance>summary:focus-visible{outline:2px solid var(--primary);outline-offset:4px}
