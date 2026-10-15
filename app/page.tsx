@@ -156,7 +156,6 @@ export default function Home({store,email,onSignOut,preview=false}:{store:Traini
  <button title="Relancer le minuteur courant" aria-label="Relancer le minuteur courant" onClick={restart}><RotateCcw/></button>
  <button aria-label={r.pausedAt!==null?'Reprendre la séance':'Mettre en pause'} onClick={pause}>{r.pausedAt!==null?<Play/>:<Pause/>}</button>
  <button title={activeFiller&&r.phase==='REST'?'Passer l’intercalaire':'Passer à la suite'} aria-label={activeFiller&&r.phase==='REST'?'Passer l’intercalaire':'Passer à la suite'} onClick={skipCurrent}><SkipForward/></button>
- <button className="toolbar-validate" disabled={r.pausedAt!==null||r.phase==='CHARGE'&&hasWeight(t!.ex)&&r.loads[t!.ex.id]===undefined} aria-label="Valider l’étape en cours" onClick={validateCurrent}><Check/></button>
  <button aria-label="Changer d’exercice" onClick={openExerciseSwitcher} disabled={!remainingExercises(r).length}><ArrowLeftRight/></button>
  <label className="toolbar-audio" title="Changer le son de la séance">
  {data.settings.audio==='silent'?<VolumeX/>:<Volume2/>}
