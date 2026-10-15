@@ -1,5 +1,5 @@
 import {compile} from './engine.ts';
-import {measureFor,estimatedSeconds} from './activity.ts';
+import {approachRest,measureFor,estimatedSeconds} from './activity.ts';
 import type {Model,Entry} from './types.ts';
 export function orderedEntries(model:Model){
  const roots=model.exercices.filter(e=>!e.intercalaire_de.length);const linked=new Set<number>();
@@ -35,7 +35,7 @@ export function duplicateInsert(model:Model,order:number):Model{
 export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
  const tasks=compile(model,{catalogue,modeles:[model]},false,-1,false);
  const slots=tasks.filter(t=>t.kind==='rest').map(t=>({order:t.entry.ordre,seconds:t.seconds,approach:t.approach,index:t.index,used:false}));
- const reports=model.exercices.filter(e=>!e.intercalaire_de.length).map(e=>({order:e.ordre,available:slots.filter(s=>s.order===e.ordre).reduce((n,s)=>n+s.seconds,0),required:0,missing:0,extraSlots:0}));
+ const reports=model.exercices.filter(e=>!e.intercalaire_de.length).map(e=>({order:e.ordre,available:slots.filter(s=>s.order===e.ordre).reduce((n,s)=>n+s.seconds,0),required:0,missing:0,extraSlots:0,conflicts:[] as {exerciseId:string;approach:boolean;index:number;available:number;required:number;missing:number;unplaced:boolean}[]}));
  if(model.pauses_explicites){
   for(const e of model.exercices.filter(e=>e.intercalaire_de.length)){
    const seconds=exerciseDuration(catalogue.find(ex=>ex.id===e.exercice_id),e);
@@ -43,6 +43,7 @@ export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
    report.required+=seconds;
    const slot=slots.find(s=>s.order===e.intercalaire_de[0]&&s.approach===e.pause?.approche&&s.index===e.pause?.index&&!s.used);
    if(!slot){report.extraSlots++;report.missing+=seconds;}else{slot.used=true;report.missing+=Math.max(0,seconds-slot.seconds)}
+   if(!slot||seconds>slot.seconds)report.conflicts.push({exerciseId:e.exercice_id,approach:e.pause?.approche??false,index:e.pause?.index??0,available:slot?.seconds??0,required:seconds,missing:Math.max(0,seconds-(slot?.seconds??0)),unplaced:!slot});
   }
   return {reports,slots};
  }
@@ -58,7 +59,14 @@ export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
 }
 export function fitRest(model:Model,catalogue:import('./types').Exercise[],orders?:number[]):Model{
  const {reports}=restBudget(model,catalogue);
- let fixed={...model,exercices:model.exercices.map(e=>{const report=reports.find(r=>r.order===e.ordre);return report&&(!orders||orders.includes(e.ordre))&&report.missing&&!report.extraSlots?{...e,repos_s:e.repos_s+report.missing,approche_repos_s:(e.approche_repos_s??90)+report.missing}:e})};
+ const fixed={...model,exercices:model.exercices.map(e=>{
+  const report=reports.find(r=>r.order===e.ordre);
+  if(!report||orders&&!orders.includes(e.ordre)||!report.missing||report.extraSlots)return e;
+  if(!model.pauses_explicites)return {...e,repos_s:e.repos_s+report.missing,approche_repos_s:approachRest(e)+report.missing};
+  const approachMissing=Math.max(0,...report.conflicts.filter(c=>c.approach).map(c=>c.missing));
+  const workMissing=Math.max(0,...report.conflicts.filter(c=>!c.approach).map(c=>c.missing));
+  return {...e,repos_s:e.repos_s+workMissing,...(approachMissing||workMissing&&e.approche&&e.approche_repos_s===undefined?{approche_repos_s:approachRest(e)+approachMissing}:{})};
+ })};
  return withRestTotals(fixed,catalogue);
 }
 export function withRestTotals(fixed:Model,catalogue:import('./types').Exercise[]):Model{

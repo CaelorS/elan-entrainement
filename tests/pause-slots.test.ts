@@ -12,3 +12,20 @@ test('slot checks its own duration even with plenty of rest elsewhere',()=>{cons
 test('editing sets inside an explicit pause preserves the requested count',()=>{const m=explicitPauses(model,cat);m.exercices[1].series=2;const next=explicitPauses(m,cat);assert.equal(next.exercices[1].series,2);assert.equal(next.exercices.length,m.exercices.length);const tasks=compile(next,{modeles:[next],catalogue:cat},false,-1);assert.equal(tasks.find(t=>t.kind==='rest'&&!t.approach&&t.index===1)?.fillers?.length,2)});
 
 test('repetition inserts have no implicit time constraint, including unilateral sets',()=>{const catalogue=[cat[0],{...cat[1],unilateral:true}];const m=explicitPauses({...model,exercices:[main,{...insert,series:1,duree_s:0,reps_min:10,reps_max:10,mesure:'reps'}]},catalogue);m.exercices[1].series=2;assert.equal(restBudget(m,catalogue).reports[0].missing,0);assert.equal(restBudget(m,catalogue).reports[0].required,0);assert.equal(fitRest(m,catalogue).exercices[0].repos_s,180)});
+
+test('approach recovery defaults to half work recovery and an explicit value, including zero, wins',()=>{
+ for(const [work,custom,expected] of [[200,undefined,100],[240,undefined,120],[200,45,45],[200,0,0]] as const){
+  const m={...model,exercices:[{...main,repos_s:work,approche_repos_s:custom}]};
+  assert.ok(pauseSlots(m,cat).filter(s=>s.approche).every(s=>s.seconds===expected));
+ }
+});
+test('short-pause reports identify the actual slot and fix only that type of recovery',()=>{
+ const m=placeInPause(explicitPauses(model,cat),2,1,{approche:true,index:1});
+ const report=restBudget(m,cat).reports[0];
+ assert.ok(report.available>report.required);
+ assert.deepEqual(report.conflicts,[{exerciseId:'foot',approach:true,index:1,available:90,required:100,missing:10,unplaced:false}]);
+ const fixed=fitRest(m,cat);assert.equal(fixed.exercices[0].repos_s,180);assert.equal(fixed.exercices[0].approche_repos_s,100);
+ const work={...m,exercices:m.exercices.map(e=>e.ordre===2?{...e,duree_s:200,pause:{approche:false,index:1}}:e)};
+ const workFixed=fitRest(work,cat);assert.equal(workFixed.exercices[0].repos_s,200);assert.equal(workFixed.exercices[0].approche_repos_s,90);
+ assert.equal(restBudget(workFixed,cat).reports[0].missing,0);
+});

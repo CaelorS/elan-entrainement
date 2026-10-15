@@ -1,4 +1,4 @@
-import {measureFor,hasWeight,hasLoad,distanceFor,estimatedSeconds,isGuided,manualLoadStep} from './activity.ts';
+import {approachRest,measureFor,hasWeight,hasLoad,distanceFor,estimatedSeconds,isGuided,manualLoadStep} from './activity.ts';
 import type {Program,Model,Entry,Exercise,Task,Session,Run,Row,Feedback} from './types';
 export const AUTO_VALIDATE_SECONDS=8;
 export const uid=()=>crypto.randomUUID();
@@ -40,7 +40,7 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
   if(e.approche){[0,.75,.9].forEach((factor,i)=>{
    const reps=Math.max(1,Math.round(e.reps_max*[1,3/5,2/5][i]));
    const task=sets(ex,{...e,mesure:'reps',series:1,reps_min:reps,reps_max:reps},true,factor,i)[0];
-   const rest:Task={...task,id:uid(),kind:'rest',seconds:e.approche_repos_s??90,fillers:[]};out.push(task,rest);slots.push(rest);
+   const rest:Task={...task,id:uid(),kind:'rest',seconds:approachRest(e),fillers:[]};out.push(task,rest);slots.push(rest);
   })}
   const work=sets(ex,e);
   work.forEach((task,i)=>{

@@ -45,3 +45,5 @@ export function manualLoadStep(ex?:Exercise):number{
  if(!ex)return 1;
  return /^(squat|souleve_terre|rdl_|hip_thrust|presse_|developpe_couche|developpe_incline|tirage_vertical|chest_press|kettlebell_swing|abducteurs_machine|adducteurs_machine)/.test(ex.id)?2:1;
 }
+
+export const approachRest=(entry:Entry)=>entry.approche_repos_s??Math.round(entry.repos_s/2);

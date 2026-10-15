@@ -59,11 +59,11 @@ test('editing a confirmed working load updates upcoming approaches and keeps it 
 test('recovery starts on set completion and includes time spent editing stats',()=>{
  const run=startExecution(confirmLoad(forceRun(),1000),2000);
  const done=completeExecution({...run,rir:4},12000),restAt=done.restDeadline;
- assert.equal(done.phase,'VALIDATION');assert.equal(done.deadline,20000);assert.equal(restAt,102000);
+ assert.equal(done.phase,'VALIDATION');assert.equal(done.deadline,20000);assert.equal(restAt,72000);
  const rest=validateExecution({...done,auto:false,deadline:null,reps:4},20,false,30000);
- assert.equal(rest.phase,'REST');assert.equal(rest.deadline,102000);assert.equal(rest.deadline!-30000,72000);
+ assert.equal(rest.phase,'REST');assert.equal(rest.deadline,72000);assert.equal(rest.deadline!-30000,42000);
  assert.equal(rest.rows[0].reps_faites,4);assert.equal(rest.rows[0].rir_ressenti,null);
- const late=validateExecution(done,20,false,90000);assert.equal(late.deadline,102000);
+ const late=validateExecution(done,20,false,60000);assert.equal(late.deadline,72000);
 });
 test('work-set RIR remains available and approaches never record RIR',()=>{
  let run=confirmLoad(forceRun());const index=run.tasks.findIndex(t=>t.kind==='set'&&!t.approach);
