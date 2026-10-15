@@ -11,10 +11,10 @@ export const rowMeasure=(row:Row):Measure=>row.mesure??(row.exercice_id==='march
 export const rowHasWeight=(row:Row,ex?:Exercise)=>row.charge_applicable??(ex?hasWeight(ex):row.charge_kg>0);
 export const rowDistance=(row:Row)=>row.distance_m??(row.exercice_id==='marche_escargot'?2:0);
 const number=(n:number)=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(n);
-export const durationLabel=(seconds:number)=>seconds>=60?`${Math.floor(seconds/60)} min${seconds%60?` ${Math.round(seconds%60)} s`:''}`:`${Math.round(seconds)} s`;
+export const durationLabel=(seconds:number)=>{const total=Math.max(0,Math.round(Number.isFinite(seconds)?seconds:0));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`};
 export function targetLabel(ex:Exercise,entry:Entry){
  if(entry.steps?.length)return `${durationLabel(entry.steps.reduce((n,s)=>n+s.duree_s,0))} · ${entry.steps.length} étapes`;
- if(entry.cycle)return `${entry.cycle.count} cycles · ${entry.cycle.work_s} s / ${entry.cycle.rest_s} s · deux pieds ensemble`;
+ if(entry.cycle)return `${entry.cycle.count} cycles · ${durationLabel(entry.cycle.work_s)} / ${durationLabel(entry.cycle.rest_s)} · deux pieds ensemble`;
  switch(measureFor(ex,entry)){
   case 'duration':return entry.durees_s?.length?entry.durees_s.map(durationLabel).join(' / '):durationLabel(entry.duree_s);
   case 'distance':return `${number(distanceFor(ex,entry))} m`;

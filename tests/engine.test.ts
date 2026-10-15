@@ -8,7 +8,7 @@ test('variable holds preserve prescribed durations on both sides, and machines u
  const e={...entry,exercice_id:'gainage_lateral',approche:false,series:3,mesure:'duration' as const,duree_s:20,durees_s:[20,25,30]};
  const tasks=compile({...model,exercices:[e]},p).filter(t=>t.kind==='set');
  assert.deepEqual(tasks.map(t=>t.seconds),[20,20,25,25,30,30]);
- assert.equal(entryLabel(p.catalogue.find(e=>e.id==='gainage_lateral')!,e),'20 s / 25 s / 30 s par côté');
+ assert.equal(entryLabel(p.catalogue.find(e=>e.id==='gainage_lateral')!,e),'00:20 / 00:25 / 00:30 par côté');
  assert.equal(hasWeight({...squat,type_charge:'machine'}),true);
  assert.equal(hasWeight({...squat,type_charge:'poulie'}),true);
 });
