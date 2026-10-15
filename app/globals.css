@@ -175,7 +175,7 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .workout-toolbar .toolbar-validate{border-color:#53614d}
 .workout-action{bottom:calc(84px + env(safe-area-inset-bottom));padding:24px max(20px,calc((100vw - 680px)/2)) 0}
 .in-workout .workout-main{padding-bottom:210px}
-.elan-dialog.exercise-switcher{position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;margin:0!important;translate:0 0!important;transform:translate(-50%,-50%)!important;width:calc(100vw - 28px)!important;max-width:540px!important;max-height:calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;grid-template-columns:minmax(0,1fr);animation:none!important}
+.dialog-viewport-center{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px 14px;padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom));pointer-events:none}.dialog-viewport-center>.elan-dialog.exercise-switcher{position:relative;inset:auto;margin:0;transform:none;translate:none;width:100%;max-width:540px!important;max-height:100%;min-height:0;overflow:auto;grid-template-columns:minmax(0,1fr);pointer-events:auto;animation:none}
 .exercise-switcher .switch-exercise-row strong{overflow-wrap:anywhere}
 @media(max-width:360px){.workout-toolbar{gap:3px;padding:8px 5px}.workout-toolbar svg{width:20px}}
 
