@@ -23,10 +23,10 @@ export function targetLabel(ex:Exercise,entry:Entry){
  }
 }
 export const entryLabel=(ex:Exercise,entry:Entry)=>`${entry.series>1&&!entry.durees_s?.length?entry.series+' × ':''}${targetLabel(ex,entry)}${ex.unilateral?' par côté':''}`;
-// Estimates are for distributing existing work only; they never add repetitions or extend holds.
+// Repetition work has no implicit duration; zero excludes unknown time from scheduling totals.
 export function estimatedSeconds(task:Task){
  const measure=measureFor(task.ex,task.entry);
- return measure==='duration'?task.seconds:measure==='reps'?Math.max(20,task.reps*3):measure==='distance'?Math.max(20,distanceFor(task.ex,task.entry)*10):30;
+ return measure==='duration'?task.seconds:measure==='reps'?0:measure==='distance'?Math.max(20,distanceFor(task.ex,task.entry)*10):30;
 }
 
 export const isGuided=(task:Task)=>!!task.warmup||task.ex.categorie!=='force';

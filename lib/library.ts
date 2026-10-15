@@ -48,7 +48,7 @@ export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
  }
  for(const e of model.exercices.filter(e=>e.intercalaire_de.length).sort((a,b)=>a.intercalaire_de.length-b.intercalaire_de.length)){
   const ex=catalogue.find(x=>x.id===e.exercice_id);if(!ex)continue;
-  const perSide=(i:number)=>e.cycle?e.cycle.count*(e.cycle.work_s+e.cycle.rest_s):measureFor(ex,e)==='duration'?(e.durees_s?.[i]??e.duree_s):measureFor(ex,e)==='distance'?Math.max(20,(e.distance_m??0)*10):Math.max(20,e.reps_max*3);
+  const perSide=(i:number)=>e.cycle?e.cycle.count*(e.cycle.work_s+e.cycle.rest_s):measureFor(ex,e)==='duration'?(e.durees_s?.[i]??e.duree_s):measureFor(ex,e)==='distance'?Math.max(20,(e.distance_m??0)*10):measureFor(ex,e)==='reps'?0:30;
   const durations=Array.from({length:e.series},(_,i)=>Math.ceil(perSide(i)*(ex.unilateral?2:1)));
   const eligible=slots.filter(s=>e.intercalaire_de.includes(s.order));const total=durations.reduce((n,v)=>n+v,0);
   const groups=eligible.some(s=>s.seconds>=total)?[total]:durations;
@@ -77,7 +77,7 @@ export function exerciseDuration(ex:import('./types').Exercise|undefined,entry:E
  if(!ex)return 0;
  if(entry.intercalaire_de.length){
   const sides=ex.unilateral?2:1;let work=0;
-  for(let i=0;i<entry.series;i++)work+=entry.cycle?entry.cycle.count*(entry.cycle.work_s+entry.cycle.rest_s):measureFor(ex,entry)==='duration'?(entry.durees_s?.[i]??entry.duree_s):measureFor(ex,entry)==='reps'?Math.max(20,entry.reps_max*3):measureFor(ex,entry)==='distance'?Math.max(20,(entry.distance_m??0)*10):30;
+  for(let i=0;i<entry.series;i++)work+=entry.cycle?entry.cycle.count*(entry.cycle.work_s+entry.cycle.rest_s):measureFor(ex,entry)==='duration'?(entry.durees_s?.[i]??entry.duree_s):measureFor(ex,entry)==='reps'?0:measureFor(ex,entry)==='distance'?Math.max(20,(entry.distance_m??0)*10):30;
   return Math.round(work*sides+Math.max(0,entry.series-1)*entry.repos_s);
  }
  const plan=model??({exercices:[entry]} as Model);

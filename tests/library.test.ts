@@ -46,10 +46,10 @@ test('new or worsened insert shortages still warn; accepted correction affects o
 });
 
 import {exerciseDuration} from '../lib/library.ts';
-test('total duration includes approaches and actual rest without a final recovery',()=>{
+test('repetition totals count only known rest, without inventing execution time',()=>{
  const ex=catalogue[0],e={...realistic.exercices[0],series:4,reps_max:5,approche:true,repos_s:180};
- assert.equal(exerciseDuration(ex,e),950);
- const saved=withRestTotals({...realistic,exercices:[e]},catalogue);assert.equal(saved.exercices[0].duree_totale_s,950);
+ assert.equal(exerciseDuration(ex,e),810);
+ const saved=withRestTotals({...realistic,exercices:[e]},catalogue);assert.equal(saved.exercices[0].duree_totale_s,810);
 });
 test('insert totals include both sides, varying holds, cycles and their own recovery',()=>{
  const ex={...catalogue[2],unilateral:true};const e={...realistic.exercices[2],series:3,duree_s:30,repos_s:10};
