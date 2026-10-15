@@ -5,12 +5,12 @@ export function pauseSlots(model:Model,catalogue:Exercise[]){
  return compile({...model,pauses_explicites:true},{modeles:[model],catalogue},false,-1,false).filter(t=>t.kind==='rest').map(t=>({parent:t.entry.ordre,approche:t.approach,index:t.index,seconds:t.seconds}));
 }
 export function explicitPauses(model:Model,catalogue:Exercise[]):Model{
- if(model.pauses_explicites)return model;
+ if(model.pauses_explicites)return model.exercices.some(e=>e.intercalaire_de.length&&e.repos_s!==0)?{...model,exercices:model.exercices.map(e=>e.intercalaire_de.length?{...e,repos_s:0}:e)}:model;
  const slots=pauseSlots(model,catalogue),used=new Set<string>(model.pauses_explicites?model.exercices.filter(e=>e.pause).map(e=>`${e.intercalaire_de[0]}:${e.pause!.approche}:${e.pause!.index}`):[]);let order=Math.max(0,...model.exercices.map(e=>e.ordre));
  const exercices=model.exercices.flatMap(e=>{
   if(!e.intercalaire_de.length)return [e];
   return Array.from({length:e.series},(_,i)=>{
-   const copy:Entry={...e,ordre:i===0?e.ordre:++order,series:1,duree_s:e.durees_s?.[i]??e.duree_s,durees_s:undefined};
+   const copy:Entry={...e,repos_s:0,ordre:i===0?e.ordre:++order,series:1,duree_s:e.durees_s?.[i]??e.duree_s,durees_s:undefined};
    if(model.pauses_explicites&&i===0)return copy;
    const seconds=exerciseDuration(catalogue.find(x=>x.id===e.exercice_id),copy);
    const options=slots.filter(s=>e.intercalaire_de.includes(s.parent)&&!used.has(`${s.parent}:${s.approche}:${s.index}`)).sort((a,b)=>Number(b.seconds>=seconds)-Number(a.seconds>=seconds)||Number(a.approche)-Number(b.approche));

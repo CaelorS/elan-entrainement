@@ -114,3 +114,16 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .insert-picker{display:grid;gap:10px;max-height:45dvh;overflow-y:auto;padding:4px}
 .insert-picker .picker-card{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:6px;width:100%;margin:0;padding:14px}
 .picker-card.selected{outline:2px solid var(--accent,#c6f563)}.picker-card span,.picker-card small{font-size:13px}.picker-card small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Prevent grid intrinsic widths and native selects from widening mobile cards. */
+.exercise-cards,.exercise-block,.insert-picker{grid-template-columns:minmax(0,1fr);min-width:0;max-width:100%}
+.exercise-block,.pause-slot,.unplaced-insert,.exercise-expanded,.quick-editor,.quick-editor label{min-width:0}
+.exercise-card,.pause-empty{box-sizing:border-box;max-width:100%}
+.pause-slot{margin-inline:16px 0}.pause-slot .exercise-card{width:100%;margin-inline:0}
+.elan-dialog.insert-dialog{width:calc(100vw - 32px)!important;max-width:560px!important;box-sizing:border-box;overflow-x:hidden;grid-template-columns:minmax(0,1fr);padding:24px!important}
+.insert-dialog>*{min-width:0;max-width:100%}.insert-dialog label{display:grid;gap:8px}.insert-dialog select{width:100%;max-width:100%;text-overflow:ellipsis}
+.insert-picker .picker-card{color:#f1f6ee;overflow-wrap:anywhere}.picker-card span{color:#cad5bf}
+.exercise-card-insert .parameter-chip{color:#e4e8d7;-webkit-text-fill-color:currentColor}
+.exercise-card-insert .parameter-chip.parameter-active{color:#211c0d}
+@media(hover:hover){.exercise-card-insert .parameter-chip:hover{background:#efd780;color:#211c0d}}
+@media(hover:none){.exercise-card-insert .parameter-chip:not(.parameter-active){background:#49412b;color:#e4e8d7}}

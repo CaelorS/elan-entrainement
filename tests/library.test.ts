@@ -51,10 +51,10 @@ test('repetition totals count only known rest, without inventing execution time'
  assert.equal(exerciseDuration(ex,e),810);
  const saved=withRestTotals({...realistic,exercices:[e]},catalogue);assert.equal(saved.exercices[0].duree_totale_s,810);
 });
-test('insert totals include both sides, varying holds, cycles and their own recovery',()=>{
+test('insert totals include both sides and explicit cycles but no extra recovery',()=>{
  const ex={...catalogue[2],unilateral:true};const e={...realistic.exercices[2],series:3,duree_s:30,repos_s:10};
- assert.equal(exerciseDuration(ex,e),200);
- assert.equal(exerciseDuration(ex,{...e,durees_s:[20,30,40]}),200);
+ assert.equal(exerciseDuration(ex,e),180);
+ assert.equal(exerciseDuration(ex,{...e,durees_s:[20,30,40]}),180);
  assert.equal(exerciseDuration({...ex,unilateral:false},{...e,series:1,cycle:{count:10,work_s:5,rest_s:5}}),100);
 });
 test('guided warmup totals use all steps and recalculate after duration changes',()=>{

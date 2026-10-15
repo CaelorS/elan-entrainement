@@ -78,7 +78,7 @@ export function exerciseDuration(ex:import('./types').Exercise|undefined,entry:E
  if(entry.intercalaire_de.length){
   const sides=ex.unilateral?2:1;let work=0;
   for(let i=0;i<entry.series;i++)work+=entry.cycle?entry.cycle.count*(entry.cycle.work_s+entry.cycle.rest_s):measureFor(ex,entry)==='duration'?(entry.durees_s?.[i]??entry.duree_s):measureFor(ex,entry)==='reps'?0:measureFor(ex,entry)==='distance'?Math.max(20,(entry.distance_m??0)*10):30;
-  return Math.round(work*sides+Math.max(0,entry.series-1)*entry.repos_s);
+  return Math.round(work*sides);
  }
  const plan=model??({exercices:[entry]} as Model);
  return Math.round(compile(plan,{modeles:[plan],catalogue},false,-1,false).filter(t=>t.entry.ordre===entry.ordre).reduce((sum,t)=>sum+(t.kind==='set'?estimatedSeconds(t):t.kind==='rest'?t.seconds:0),0));
