@@ -44,3 +44,21 @@ test('new or worsened insert shortages still warn; accepted correction affects o
  const improved={...realistic,exercices:realistic.exercices.map(e=>e.ordre===3?{...e,duree_s:80}:e)};assert.deepEqual(newRestIssues(improved,catalogue,realistic),[]);
  const reordered=moveEntry(realistic,2,-1);assert.deepEqual(newRestIssues(reordered,catalogue,realistic),[]);
 });
+
+import {exerciseDuration} from '../lib/library.ts';
+test('total duration includes approaches and actual rest without a final recovery',()=>{
+ const ex=catalogue[0],e={...realistic.exercices[0],series:4,reps_max:5,approche:true,repos_s:180};
+ assert.equal(exerciseDuration(ex,e),950);
+ const saved=withRestTotals({...realistic,exercices:[e]},catalogue);assert.equal(saved.exercices[0].duree_totale_s,950);
+});
+test('insert totals include both sides, varying holds, cycles and their own recovery',()=>{
+ const ex={...catalogue[2],unilateral:true};const e={...realistic.exercices[2],series:3,duree_s:30,repos_s:10};
+ assert.equal(exerciseDuration(ex,e),200);
+ assert.equal(exerciseDuration(ex,{...e,durees_s:[20,30,40]}),200);
+ assert.equal(exerciseDuration({...ex,unilateral:false},{...e,series:1,cycle:{count:10,work_s:5,rest_s:5}}),100);
+});
+test('guided warmup totals use all steps and recalculate after duration changes',()=>{
+ const e={...realistic.exercices[0],series:1,approche:false,steps:[{exercice_id:'squat',consigne:'A',duree_s:120},{exercice_id:'ankle',consigne:'B',duree_s:240}]};
+ assert.equal(exerciseDuration(catalogue[0],e,undefined,catalogue),360);
+ assert.equal(exerciseDuration(catalogue[0],{...e,steps:e.steps.map(s=>({...s,duree_s:s.duree_s/2}))},undefined,catalogue),180);
+});

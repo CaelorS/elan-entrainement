@@ -1,5 +1,5 @@
 import {compile} from './engine.ts';
-import {measureFor} from './activity.ts';
+import {measureFor,estimatedSeconds} from './activity.ts';
 import type {Model,Entry} from './types.ts';
 export function orderedEntries(model:Model){
  const roots=model.exercices.filter(e=>!e.intercalaire_de.length);const linked=new Set<number>();
@@ -53,7 +53,7 @@ export function fitRest(model:Model,catalogue:import('./types').Exercise[],order
 }
 export function withRestTotals(fixed:Model,catalogue:import('./types').Exercise[]):Model{
  const final=restBudget(fixed,catalogue).reports;
- return {...fixed,exercices:fixed.exercices.map(e=>({...e,repos_total_s:final.find(r=>r.order===e.ordre)?.available??0}))};
+ return {...fixed,exercices:fixed.exercices.map(e=>({...e,repos_total_s:final.find(r=>r.order===e.ordre)?.available??0,duree_totale_s:exerciseDuration(catalogue.find(x=>x.id===e.exercice_id),e,fixed,catalogue)}))};
 }
 
 // Warn only about a new or worsened shortage, not an unrelated pre-existing one.
@@ -61,4 +61,15 @@ export function newRestIssues(draft:Model,catalogue:import('./types').Exercise[]
  const keyed=(model:Model,cat:typeof catalogue)=>{const counts=new Map<string,number>();return restBudget(model,cat).reports.map(report=>{const id=model.exercices.find(e=>e.ordre===report.order)!.exercice_id;const n=counts.get(id)??0;counts.set(id,n+1);return {key:`${id}:${n}`,report}})};
  const old=new Map(previous?keyed(previous,previousCatalogue).map(x=>[x.key,x.report]):[]);
  return keyed(draft,catalogue).filter(({key,report})=>{const before=old.get(key);return (report.missing>0||report.extraSlots>0)&&(!before||report.missing>before.missing||report.extraSlots>before.extraSlots)}).map(x=>x.report);
+}
+
+export function exerciseDuration(ex:import('./types').Exercise|undefined,entry:Entry,model?:Model,catalogue:import('./types').Exercise[]=ex?[ex]:[]):number{
+ if(!ex)return 0;
+ if(entry.intercalaire_de.length){
+  const sides=ex.unilateral?2:1;let work=0;
+  for(let i=0;i<entry.series;i++)work+=entry.cycle?entry.cycle.count*(entry.cycle.work_s+entry.cycle.rest_s):measureFor(ex,entry)==='duration'?(entry.durees_s?.[i]??entry.duree_s):measureFor(ex,entry)==='reps'?Math.max(20,entry.reps_max*3):measureFor(ex,entry)==='distance'?Math.max(20,(entry.distance_m??0)*10):30;
+  return Math.round(work*sides+Math.max(0,entry.series-1)*entry.repos_s);
+ }
+ const plan=model??({exercices:[entry]} as Model);
+ return Math.round(compile(plan,{modeles:[plan],catalogue},false,-1,false).filter(t=>t.entry.ordre===entry.ordre).reduce((sum,t)=>sum+(t.kind==='set'?estimatedSeconds(t):t.kind==='rest'?t.seconds:0),0));
 }
