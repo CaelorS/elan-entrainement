@@ -208,3 +208,5 @@ test('next exercise still requests an unconfirmed load and restart resumes pause
  const countdown=confirmLoad(run,1000);const restarted=restartWorkout(togglePause(countdown,2000),3000);
  assert.equal(restarted.pausedAt,null);assert.equal(restarted.deadline,8000);
 });
+
+test('rowing uses one kg and skips a newer session without usable load',()=>{const ex={...squat,id:'rowing_haltere'};const older={...session(2,'facile',12,20),series:session(2).series.map(r=>({...r,exercice_id:ex.id,charge_kg:20})),retours:[{exercice_id:ex.id,retour:'facile'} as any]};const recent={...session(1),series:[{...older.series[0],charge_applicable:false,charge_kg:0}]};assert.equal(suggest(ex,entry,'other',[recent,older]).charge,21);assert.equal(suggest(ex,entry,'other',[{...older,retours:[{exercice_id:ex.id,retour:'trop_dur'} as any]}]).charge,19)});

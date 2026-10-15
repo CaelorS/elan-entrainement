@@ -7,7 +7,7 @@ export const fmtTime=(seconds:number)=>`${Math.floor(Math.max(0,seconds)/60).toS
 export const fmt=(n:number)=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(n);
 const mode=(a:number[])=>a.reduce((best,v)=>a.filter(x=>x===v).length>a.filter(x=>x===best).length?v:best,a[0]??0);
 export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now=Date.now()){
- const all=history.filter(s=>s.statut==='terminee'&&s.series.some(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut));
+ const all=history.filter(s=>s.statut==='terminee'&&s.series.some(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement&&Number.isFinite(r.charge_kg)&&r.charge_applicable!==false)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut));
  const latest=all[0];if(ex.reference_kg!==undefined&&(!latest||(ex.reference_at??0)>new Date(latest.heure_debut).getTime()))return {charge:ex.reference_kg,motif:'Référence personnalisée',reference:'Charge choisie dans la bibliothèque.'};if(!latest)return {charge:null,motif:'Première séance',reference:'Choisis une charge confortable.'};
  const rows=latest.series.filter(r=>r.exercice_id===ex.id&&!r.approche&&!r.intercalaire&&!r.echauffement&&Number.isFinite(r.charge_kg)&&r.charge_applicable!==false);
  if(!rows.length)return {charge:null,motif:'Charge non renseignée',reference:'Choisis une charge confortable.'};
@@ -15,7 +15,7 @@ export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now
  const fb=latest.retours.find(x=>x.exercice_id===ex.id)?.retour;
  const step=manualLoadStep(ex);
  const charge=Math.max(0,ref+(fb==='facile'?step:fb==='trop_dur'?-step:0));
- return {charge,motif:fb==='facile'?`Facile · +${step} kg`:fb==='trop_dur'?`Difficile · −${step} kg`:'Même charge que la dernière séance',reference:`${fmt(ref)} kg · ${latest.nom} · ${new Date(latest.heure_debut).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`};
+ return {charge,motif:fb==='facile'?`En progression de ${fmt(charge-ref)} kg par rapport à la dernière fois`:fb==='trop_dur'?`En baisse de ${fmt(ref-charge)} kg par rapport à la dernière fois`:'Comme la dernière fois',reference:`${fmt(ref)} kg · ${latest.nom} · ${new Date(latest.heure_debut).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`};
 }
 function sets(ex:Exercise,e:Entry,approach=false,factor=1,indexOffset=0):Task[]{
  const measure=measureFor(ex,e),out:Task[]=[];
@@ -46,14 +46,23 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
   work.forEach((task,i)=>{
    out.push(task);
    const finalInBlock=i===work.length-1,finalInSession=finalInBlock&&blockIndex===main.length-1;
-   if(task.side==='gauche'||finalInSession||e.repos_s<=0)return;
+   if(task.side==='gauche'||(!model.pauses_explicites&&finalInSession)||e.repos_s<=0)return;
    // A transition rest is useful only where inserts have been requested.
    const carrier=active.some(f=>f.intercalaire_de.includes(e.ordre));
-   if(!finalInBlock||carrier){const rest={...task,id:uid(),kind:'rest' as const,seconds:e.repos_s,fillers:[]};out.push(rest);slots.push(rest)}
+   if(model.pauses_explicites||!finalInBlock||carrier){const rest={...task,id:uid(),kind:'rest' as const,seconds:e.repos_s,fillers:[]};out.push(rest);slots.push(rest)}
   });
   if(ex.categorie==='force'&&blockIndex<main.length-1)out.push({id:uid(),kind:'review',ex,entry:e,index:e.series,side:'bilateral',approach:false,factor:1,reps:0,seconds:AUTO_VALIDATE_SECONDS});
  });
  if(!scheduleFillers)return out;
+ if(model.pauses_explicites){
+  for(const e of active.filter(e=>e.intercalaire_de.length&&e.pause)){
+   const ex=catalogue.get(e.exercice_id);if(!ex)continue;
+   const slot=slots.find(s=>s.entry.ordre===e.intercalaire_de[0]&&s.approach===e.pause!.approche&&s.index===e.pause!.index);
+   if(slot)slot.fillers!.push(...sets(ex,e));
+  }
+  return out;
+ }
+
  // One exercise per pause. Keep its sides/short holds together, but distribute long sets
  // (e.g. isometric holds) over separate pauses. Never create a post-session rest.
  const groups=active.filter(e=>e.intercalaire_de.length).flatMap(e=>{

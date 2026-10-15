@@ -30,12 +30,22 @@ export function dropEntry(model:Model,source:number,target:number,insert:boolean
 }
 export function duplicateInsert(model:Model,order:number):Model{
  const source=model.exercices.find(e=>e.ordre===order);if(!source?.intercalaire_de.length)return model;
- const copy={...structuredClone(source),ordre:Math.max(...model.exercices.map(e=>e.ordre))+1};return {...model,exercices:[...model.exercices,copy]};
+ const copy={...structuredClone(source),pause:undefined,ordre:Math.max(...model.exercices.map(e=>e.ordre))+1};return {...model,exercices:[...model.exercices,copy]};
 }
 export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
  const tasks=compile(model,{catalogue,modeles:[model]},false,-1,false);
- const slots=tasks.filter(t=>t.kind==='rest').map(t=>({order:t.entry.ordre,seconds:t.seconds,approach:t.approach,used:false}));
+ const slots=tasks.filter(t=>t.kind==='rest').map(t=>({order:t.entry.ordre,seconds:t.seconds,approach:t.approach,index:t.index,used:false}));
  const reports=model.exercices.filter(e=>!e.intercalaire_de.length).map(e=>({order:e.ordre,available:slots.filter(s=>s.order===e.ordre).reduce((n,s)=>n+s.seconds,0),required:0,missing:0,extraSlots:0}));
+ if(model.pauses_explicites){
+  for(const e of model.exercices.filter(e=>e.intercalaire_de.length)){
+   const seconds=exerciseDuration(catalogue.find(ex=>ex.id===e.exercice_id),e);
+   const report=reports.find(r=>r.order===e.intercalaire_de[0]);if(!report)continue;
+   report.required+=seconds;
+   const slot=slots.find(s=>s.order===e.intercalaire_de[0]&&s.approach===e.pause?.approche&&s.index===e.pause?.index&&!s.used);
+   if(!slot){report.extraSlots++;report.missing+=seconds;}else{slot.used=true;report.missing+=Math.max(0,seconds-slot.seconds)}
+  }
+  return {reports,slots};
+ }
  for(const e of model.exercices.filter(e=>e.intercalaire_de.length).sort((a,b)=>a.intercalaire_de.length-b.intercalaire_de.length)){
   const ex=catalogue.find(x=>x.id===e.exercice_id);if(!ex)continue;
   const perSide=(i:number)=>e.cycle?e.cycle.count*(e.cycle.work_s+e.cycle.rest_s):measureFor(ex,e)==='duration'?(e.durees_s?.[i]??e.duree_s):measureFor(ex,e)==='distance'?Math.max(20,(e.distance_m??0)*10):Math.max(20,e.reps_max*3);

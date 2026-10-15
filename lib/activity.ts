@@ -43,5 +43,5 @@ export const hasAngle=(ex:Exercise)=>ex.id==='squat_isometrique';
 // Manual +/- controls only. Automatic progression keeps its own programme rules.
 export function manualLoadStep(ex?:Exercise):number{
  if(!ex)return 1;
- return /^(squat|souleve_terre|rdl_|hip_thrust|presse_|developpe_couche|developpe_incline|rowing_|tirage_vertical|chest_press|kettlebell_swing|abducteurs_machine|adducteurs_machine)/.test(ex.id)?2:1;
+ return /^(squat|souleve_terre|rdl_|hip_thrust|presse_|developpe_couche|developpe_incline|tirage_vertical|chest_press|kettlebell_swing|abducteurs_machine|adducteurs_machine)/.test(ex.id)?2:1;
 }

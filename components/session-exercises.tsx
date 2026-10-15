@@ -1,0 +1,27 @@
+import {useState} from 'react';
+import {Plus} from 'lucide-react';
+import {ExerciseCard} from './exercise-cards';
+import {explicitPauses,pauseSlots,placeInPause} from '../lib/pause-slots';
+import {exerciseDuration,dropEntry,previewDrop} from '../lib/library';
+import {fmtTime} from '../lib/engine';
+import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from './ui/dialog';
+import type {Model,Exercise,Entry,Session} from '../lib/types';
+export function SessionExercises({model:original,catalogue,sessions,onSave,onEdit}:{model:Model;catalogue:Exercise[];sessions:Session[];onSave:(model:Model,undo:Model)=>void;onEdit:(ex:Exercise,model:Model,entry?:Entry)=>void}){
+ const model=explicitPauses(original,catalogue),slots=pauseSlots(model,catalogue),readonly=!!original.actif_au;
+ const [copy,setCopy]=useState<Entry|null>(null);
+ const [add,setAdd]=useState<{parent:number;approche:boolean;index:number}|null>(null),[choice,setChoice]=useState('');
+ function save(m:Model){onSave(m,original)}
+ function card(e:Entry){const ex=catalogue.find(x=>x.id===e.exercice_id);if(!ex)return null;
+ const insert=!!e.intercalaire_de.length;
+ return <ExerciseCard key={e.ordre} ex={ex} entry={e} totalDuration={exerciseDuration(ex,e,model,catalogue)} sessions={sessions} description={<>{ex.media&&(ex.media.endsWith(".mp4")?<video src={ex.media} controls playsInline aria-label={ex.nom}/>:<img src={ex.media} alt={ex.nom}/>)}<p>{ex.consigne}</p>{e.steps?.map((step,i)=><p key={i}>{i+1}. {catalogue.find(x=>x.id===step.exercice_id)?.nom} · {fmtTime(step.duree_s)} — {step.consigne}</p>)}{ex.vigilance&&<details><summary>Le point à surveiller</summary>{ex.vigilance}</details>}</>}
+ dragBlocks={!insert} onSave={readonly?undefined:(x,entry)=>onEdit(x,model,entry)}
+ onDuplicate={readonly||!insert?undefined:()=>{setCopy(e);setChoice(e.exercice_id);setAdd({parent:e.intercalaire_de[0],approche:false,index:0})}}
+ onPauseDrop={readonly||!insert?undefined:(source,parent,pause)=>save(placeInPause(model,source,parent,pause))}
+ onDrop={readonly?undefined:(source,target,after)=>{if(!insert&&source!==target)save(dropEntry(model,source,target,false,after))}}
+ onPreviewDrop={(source,target,after)=>previewDrop(model,source,target,false,after).map(e=>e.ordre)}/>;
+ }
+ const empty=slots.filter(s=>!model.exercices.some(e=>e.intercalaire_de[0]===s.parent&&e.pause?.approche===s.approche&&e.pause?.index===s.index));
+ const label=(s:typeof slots[number])=>`${catalogue.find(x=>x.id===model.exercices.find(e=>e.ordre===s.parent)?.exercice_id)?.nom} · ${s.approche?'Approche':'Intercalaire'} ${s.index} · ${fmtTime(s.seconds)}`;
+ return <><div className="exercise-cards explicit-pauses">{model.exercices.filter(e=>!e.intercalaire_de.length).map(root=><div className="exercise-block" data-drag-block={root.ordre} key={root.ordre}>{card(root)}{slots.filter(s=>s.parent===root.ordre).map(slot=>{const e=model.exercices.find(e=>e.intercalaire_de[0]===slot.parent&&e.pause?.approche===slot.approche&&e.pause?.index===slot.index);return <div className="pause-slot" key={`${slot.approche}:${slot.index}`}><p>{slot.approche?'Pause d’approche':'Intercalaire'} {slot.index} · {fmtTime(slot.seconds)} {e?'de repos':'disponibles'}</p>{e?card(e):<button className="pause-empty" disabled={readonly} data-pause-parent={slot.parent} data-pause-approach={slot.approche} data-pause-index={slot.index} onClick={()=>{setCopy(null);setChoice('');setAdd(slot)}}><Plus size={16}/> Glisser ou ajouter un intercalaire</button>}</div>})}</div>)}{model.exercices.filter(e=>e.intercalaire_de.length&&!slots.some(s=>s.parent===e.intercalaire_de[0]&&s.approche===e.pause?.approche&&s.index===e.pause?.index)).map(e=><div className="unplaced-insert" key={e.ordre}><p>À placer dans une pause</p>{card(e)}</div>)}</div>
+ <Dialog open={!!add} onOpenChange={open=>!open&&setAdd(null)}><DialogContent className="elan-dialog"><DialogHeader><DialogTitle>Ajouter un intercalaire</DialogTitle><DialogDescription>Chaque carte correspond à une occurrence dans la pause choisie.</DialogDescription></DialogHeader><label>Exercice<select value={choice} onChange={e=>setChoice(e.target.value)}><option value="">Choisir un exercice</option>{catalogue.filter(ex=>ex.intercalaire||model.exercices.some(e=>e.exercice_id===ex.id&&e.intercalaire_de.length)).map(ex=><option key={ex.id} value={ex.id}>{ex.nom}</option>)}</select></label><label>Emplacement<select value={add?`${add.parent}:${add.approche}:${add.index}`:''} onChange={e=>{const [parent,approche,index]=e.target.value.split(':');setAdd({parent:Number(parent),approche:approche==='true',index:Number(index)})}}><option value="">Choisir une pause libre</option>{empty.map(s=><option key={`${s.parent}:${s.approche}:${s.index}`} value={`${s.parent}:${s.approche}:${s.index}`}>{label(s)}</option>)}</select></label><button className="primary" disabled={!choice||!add||!empty.some(s=>s.parent===add.parent&&s.approche===add.approche&&s.index===add.index)} onClick={()=>{if(!add)return;const template=copy?.exercice_id===choice?copy:model.exercices.find(e=>e.exercice_id===choice);const entry:Entry={exercice_id:choice,series:1,reps_min:0,reps_max:0,duree_s:30,repos_s:0,approche:false,format:'',note:'',...template,durees_s:undefined,ordre:Math.max(0,...model.exercices.map(e=>e.ordre))+1,intercalaire_de:[add.parent],pause:{approche:add.approche,index:add.index}};entry.series=1;save({...model,exercices:[...model.exercices,entry]});setAdd(null)}}>Ajouter ici</button></DialogContent></Dialog></>;
+}
