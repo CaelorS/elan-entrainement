@@ -1,6 +1,9 @@
 import {useEffect,useRef,useState} from 'react';
 // All open windows must save their state and approve before a worker takes over.
-export function useAppUpdates(safe:boolean,flush:()=>Promise<void>,enabled=true){
+export function useAppUpdates(safe:boolean,flush:()=>Promise<void>,enabled=true,onApplied?:()=>void){
+ const appliedRef=useRef(onApplied);appliedRef.current=onApplied;
+ const receiptKey='elan-update-applied:'+import.meta.env.BASE_URL;
+ useEffect(()=>{if(!enabled||!safe)return;try{if(sessionStorage.getItem(receiptKey)){sessionStorage.removeItem(receiptKey);appliedRef.current?.()}}catch{}},[enabled,safe,receiptKey]);
  const safeRef=useRef(safe);safeRef.current=safe;
  const flushRef=useRef(flush);flushRef.current=flush;
  const [waiting,setWaiting]=useState<ServiceWorker|null>(null);
@@ -8,7 +11,7 @@ export function useAppUpdates(safe:boolean,flush:()=>Promise<void>,enabled=true)
   if(!enabled||!('serviceWorker' in navigator)||import.meta.env.DEV)return;
   let live=true,registration:ServiceWorkerRegistration|undefined,reloading=false;
   let hadController=!!navigator.serviceWorker.controller;
-  const controller=()=>{if(!hadController){hadController=true;return}if(!reloading){reloading=true;location.reload()}};
+  const controller=()=>{if(!hadController){hadController=true;return}if(!reloading){reloading=true;try{sessionStorage.setItem(receiptKey,'1')}catch{}location.reload()}};
   const message=async(event:MessageEvent)=>{if(event.data?.type==='PREPARE_UPDATE'){let ok=safeRef.current&&document.visibilityState==='visible'&&!document.activeElement?.matches('input,textarea,select,[contenteditable=true]');try{if(ok)await flushRef.current()}catch{ok=false}event.source?.postMessage({type:'UPDATE_READY',requestId:event.data.requestId,safe:ok&&safeRef.current});}};
   const check=()=>{if(document.visibilityState==='visible')void registration?.update().catch(()=>{})};
   const discover=()=>{if(live)setWaiting(registration?.waiting??null)};

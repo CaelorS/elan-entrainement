@@ -69,7 +69,7 @@ export default function Home({store,email,onSignOut,preview=false}:{store:Traini
  const [discardOpen,setDiscardOpen]=useState(false),[deleteTarget,setDeleteTarget]=useState<Session|null>(null),[manualOpen,setManualOpen]=useState(false),[actionBusy,setActionBusy]=useState(false);
  const [copyFallback,setCopyFallback]=useState<string|null>(null);
  const [syncError,setSyncError]=useState(''),[conflict,setConflict]=useState<ProgramConflict|null>(null);
- const updateWaiting=useAppUpdates(!!data&&!data.running&&!settingsOpen&&!selected&&!libraryModel&&!runDialog&&!manualOpen&&!deleteTarget&&!discardOpen,()=>store.flush(),!preview);
+ useAppUpdates(!!data&&!data.running&&!settingsOpen&&!selected&&!libraryModel&&!runDialog&&!manualOpen&&!deleteTarget&&!discardOpen,()=>store.flush(),!preview,()=>toast.success('Application mise à jour !'));
  const syncing=useRef(false),backoff=useRef(0),retry=useRef<ReturnType<typeof setTimeout>|null>(null),wakeRef=useRef<WakeLockSentinel|null>(null),restoreGuard=useRef(false);
  const commit=useCallback((next:LocalData)=>{dataRef.current=next;setData(next);void store.persist(next).catch(()=>toast.error('La sauvegarde sur cet appareil a échoué. Exporte tes données avant de fermer.'));},[store]);
  const updateRun=useCallback((fn:(run:Run)=>Run)=>{const d=dataRef.current;if(!d?.running)return;commit({...d,running:{...fn(d.running),savedAt:Date.now()}})},[commit]);
@@ -150,7 +150,7 @@ export default function Home({store,email,onSignOut,preview=false}:{store:Traini
  const progressId=progressExercises.some(ex=>ex.id===historyExercise)?historyExercise:progressExercises[0]?.id??'';
  const completedCount=r?.tasks.slice(0,r.cursor).filter(x=>x.kind==='set'&&!x.approach).length??0,totalCount=r?.tasks.filter(x=>x.kind==='set'&&!x.approach).length??1;
  const modal=(title:string,description:string,children:React.ReactNode)=> <><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>{children}</>;
- return <>{updateWaiting&&<div className="update-notice" role="status">Mise à jour prête · elle s’appliquera automatiquement lorsque tu reviendras à l’accueil, hors séance.</div>}<Toaster theme="dark" richColors position="top-center"/><div className={'shell '+(r&&r.phase!=='BILAN'?'in-workout':'')}><AppHeader onHome={()=>!r&&setTab('today')} tagline={r?undefined:tab==='history'||tab==='progress'?'CHAQUE SÉANCE COMPTE':tab==='library'?'UN PROGRAMME QUI ÉVOLUE AVEC TOI':undefined}>{!r&&<button className="icon-btn" aria-label="Réglages" onClick={()=>setSettingsOpen(true)}><Settings2 size={21}/></button>}</AppHeader>
+ return <><Toaster theme="dark" richColors position="top-center"/><div className={'shell '+(r&&r.phase!=='BILAN'?'in-workout':'')}><AppHeader onHome={()=>!r&&setTab('today')} tagline={r?undefined:tab==='history'||tab==='progress'?'CHAQUE SÉANCE COMPTE':tab==='library'?'UN PROGRAMME QUI ÉVOLUE AVEC TOI':undefined}>{!r&&<button className="icon-btn" aria-label="Réglages" onClick={()=>setSettingsOpen(true)}><Settings2 size={21}/></button>}</AppHeader>
  {r&&r.phase!=='BILAN'&&<nav className="workout-toolbar" aria-label="Commandes de séance">
  <button title="Arrêter la séance" aria-label="Arrêter la séance" onClick={()=>setAbandonOpen(true)}><X/></button>
  <button title="Relancer le minuteur courant" aria-label="Relancer le minuteur courant" onClick={restart}><RotateCcw/></button>
