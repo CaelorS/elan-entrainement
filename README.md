@@ -48,3 +48,21 @@ Le catalogue commun est dans `elan_exercises` : appliquer `supabase/schema.sql`,
 Pour préparer un programme pour un nouveau compte : inviter la personne depuis Supabase Authentication, puis préparer un import privé avec `node --experimental-strip-types scripts/prepare-profile.mjs sauvegarde.json adresse@example.com profil.sql`. Exécuter ce SQL dans le projet Supabase. Il n’écrase jamais un programme existant. Garder les sauvegardes et SQL produits hors du dépôt public. Le programme se charge à la première connexion.
 
 La connexion propose « Mot de passe oublié ». Configurer la Site URL sur l’adresse de l’application et autoriser la même adresse avec `?recovery=1`. Les liens de récupération et d’invitation ouvrent le formulaire de choix du mot de passe. Les utilisateurs saisissent leurs mots de passe eux-mêmes.
+
+## Assistants IA et administration
+
+Le connecteur distant est `https://aciowkdgysvbecglwepy.supabase.co/functions/v1/elan-mcp` (Streamable HTTP). Il fournit six outils : chercher les exercices, lister/lire les séances, enregistrer un exercice, enregistrer une séance complète, archiver/restaurer une séance. Les durées d’entrée sont au format `MM:SS`. Une révision est requise pour chaque écriture afin de refuser les écrasements concurrents.
+
+Le consentement s’affiche à la racine de l’application lorsqu’un `authorization_id` est présent. L’utilisateur choisit la lecture seule ou la lecture/modification ; les droits métiers sont conservés dans `elan_ai_grants`, distincts des scopes d’identité OAuth. Profil et réglages → Assistants IA permet de révoquer ces droits immédiatement puis d’invalider le grant OAuth. Les jetons OAuth n’accèdent jamais directement aux tables, à l’historique ou aux fonctions d’administration. Une réautorisation exige un jeton émis après le nouvel accord.
+
+Les administrateurs trouvent **Gérer les utilisateurs** dans Profil et réglages : inviter, suspendre/réactiver et ajouter/retirer le rôle administrateur. Un administrateur ne peut pas modifier ses propres droits. Une suspension bloque immédiatement les opérations cloud et révoque les accès IA ; elle ne supprime pas les données hors connexion déjà présentes sur un appareil. Les comptes ne sont pas supprimés. Les actions sont journalisées côté serveur.
+
+### Déploiement du connecteur
+
+1. Exécuter `supabase/schema.sql`, puis `supabase/admin.sql` si nécessaire, et enfin `supabase/ai-access.sql` **avant d’activer OAuth**. Ne pas réexécuter `admin.sql` seul après cette migration : il rétablirait l’ancienne vérification de rôle.
+2. Déployer : `supabase functions deploy elan-mcp elan-admin --project-ref aciowkdgysvbecglwepy --use-api --import-map supabase/functions/deno.json`.
+3. Activer le serveur OAuth Supabase et l’enregistrement dynamique des clients. Configurer l’URL d’autorisation pour aboutir à `https://caelors.github.io/elan-entrainement/` avec le paramètre `authorization_id`. Conserver le Site URL et les redirections de récupération existants. Vérifier la redirection avec une demande PKCE réelle.
+4. Les clés serveur sont injectées par Supabase dans les Edge Functions, jamais dans Vite. `ELAN_APP_URL` peut personnaliser la destination des invitations ; défaut : l’URL publique ci-dessus. SMTP doit être configuré pour envoyer des invitations aux utilisateurs externes.
+5. Dans ChatGPT ou Claude, ajouter un connecteur MCP distant avec l’URL ci-dessus, s’authentifier et choisir les droits. La disponibilité des connecteurs dépend du compte et des règles de l’espace de travail. Aucun mot de passe ni clé administrative à transmettre à l’assistant.
+
+Tests : `npm test`, `npm run build`, `npm ci --prefix server`, `npm run check --prefix server`, `npm test --prefix server`. Les tests SQL exécutent les politiques réelles dans PGlite avec plusieurs rôles et comptes. Les tests MCP exercent le protocole HTTP du SDK officiel. Les tests réels de consentement/confirmation d’e-mail requièrent un compte utilisateur et ne sont pas simulés par ces tests.

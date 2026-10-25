@@ -55,3 +55,6 @@ next-env.d.ts
 *.key
 *service-account*.json
 *credentials*.json
+
+/server/node_modules/
+/supabase/.temp/

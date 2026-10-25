@@ -1,0 +1,4 @@
+[functions.elan-mcp]
+verify_jwt = false
+[functions.elan-admin]
+verify_jwt = false

@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+test('OAuth isolation, immediate revocation, revision conflicts and admin boundaries',async()=>{
+ const db=new PGlite(),a='00000000-0000-4000-8000-000000000001',b='00000000-0000-4000-8000-000000000002';
+ const program={catalogue:[],modeles:[]};
+ try{
+ await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant usage on schema auth,public to anon,authenticated,service_role;insert into auth.users values('${a}','admin@example.invalid'),('${b}','member@example.invalid');`);
+ for(const f of ['schema','admin','ai-access','ai-access'])await db.exec(await readFile(new URL('../supabase/'+f+'.sql',import.meta.url),'utf8'));
+ await db.exec(`insert into public.elan_admins values('${a}');set role authenticated;set request.jwt.claim.sub='${b}';`);
+ await assert.rejects(db.query('select public.elan_manage_user($1,$2)',[a,'suspend']),/Administrator required/);
+ await db.query('select public.elan_ai_access($1,$2,$3)', ['claude','Claude',false]);
+ const iat=Math.floor(Date.now()/1000)+1;
+ await db.exec(`reset role;set role service_role;`);
+ const args=[b,'claude',iat];
+ assert.equal((await db.query<any>('select public.elan_mcp_program($1,$2,$3) as s',args)).rows[0].s.can_write,false);
+ await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]),/Read-only/);
+ await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',[a,'claude',iat]),/not authorized/);
+ await db.exec(`reset role;set role authenticated;set request.jwt.claims='{"client_id":"claude"}';`);
+ await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account required/);
+ await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/permission denied/);
+ await assert.rejects(db.query('select public.elan_sync($1)',[JSON.stringify(program)]),/row-level security/);
+ assert.equal((await db.query('select * from public.elan_sessions')).rows.length,0);
+ await db.exec(`set request.jwt.claim.sub='${a}'`);assert.equal((await db.query<any>('select public.elan_is_admin() as yes')).rows[0].yes,false);
+ await db.exec(`set request.jwt.claim.sub='${b}';set request.jwt.claims='{}'`);
+ await db.query('select public.elan_ai_access($1,$2,$3)', ['claude','Claude',true]);
+ await db.exec('reset role;set role service_role');
+ await db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]);
+ await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]),/Programme changed/);
+ await db.exec('reset role;set role authenticated');await db.query('select public.elan_ai_access($1,null,false,true)',['claude']);
+ await db.exec('reset role;set role service_role');await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/revoked/);
+ await db.exec(`reset role;set role authenticated;set request.jwt.claim.sub='${a}'`);
+ await assert.rejects(db.query('select public.elan_manage_user($1,$2)',[a,'remove_admin']),/own access/);
+ await db.query('select public.elan_manage_user($1,$2)',[b,'suspend']);
+ await db.exec(`set request.jwt.claim.sub='${b}'`);await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account/);
+ await db.exec(`set request.jwt.claim.sub='${a}'`);await db.query('select public.elan_manage_user($1,$2)',[b,'restore']);
+ await db.exec(`set request.jwt.claim.sub='${b}'`);assert.equal((await db.query<any>('select public.elan_direct_access() as yes')).rows[0].yes,true);
+ }finally{await db.close()}
+});
