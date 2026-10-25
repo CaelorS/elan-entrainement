@@ -1,0 +1,8 @@
+.coach-share-dialog{min-width:0;overflow-wrap:anywhere}
+.coach-share-dialog .coach-summary-preview{width:100%;min-height:8rem;max-height:28dvh;resize:vertical;font-size:.85rem;line-height:1.5}
+.coach-share-dialog .coach-share-status{margin:0;text-align:left}
+.coach-share-destinations{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;min-width:0}
+.coach-share-destinations a{min-width:0;text-decoration:none;text-align:center;white-space:normal}
+@media(max-width:380px){.coach-share-destinations{grid-template-columns:1fr}}
+.dialog-viewport-center>.elan-dialog.coach-share-dialog{position:relative;inset:auto;margin:0;transform:none;translate:none;max-height:100%;min-height:0;pointer-events:auto;grid-template-columns:minmax(0,1fr);animation:none}
+.coach-share-trigger.copy-session{margin-bottom:0}

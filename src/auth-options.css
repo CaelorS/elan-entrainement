@@ -1,0 +1,2 @@
+.auth-card .stay-connected{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-size:14px;color:#dbe5d5}
+.auth-card .stay-connected input[type=checkbox]{appearance:auto;accent-color:#c5f567;width:20px;height:20px;min-height:20px;margin:0;padding:0;flex:none}
