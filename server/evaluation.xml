@@ -1,0 +1,13 @@
+<!-- Read-only assistant evaluation. Use evaluation-fixture.json through a Repository in the test harness, never production user data. These expected answers are not a claim of ChatGPT/Claude execution. -->
+<evaluation>
+ <qa_pair><question>Parmi les séances actives, quelle séance contient un exercice à la barre ? Réponds par son id.</question><answer>lower</answer></qa_pair>
+ <qa_pair><question>Quelle séance active contient un exercice unilatéral avec haltères ? Réponds par son id.</question><answer>upper</answer></qa_pair>
+ <qa_pair><question>Combien de séries de squat sont programmées chaque semaine, en tenant compte de tous les jours de la séance active ?</question><answer>8</answer></qa_pair>
+ <qa_pair><question>Combien de séries de rowing sont programmées chaque semaine dans les séances actives ?</question><answer>3</answer></qa_pair>
+ <qa_pair><question>Quel est le maximum de répétitions de rowing par séance et par côté ?</question><answer>36</answer></qa_pair>
+ <qa_pair><question>Quelle séance archivée contient une activité sans charge de dix minutes ? Réponds par son id.</question><answer>recovery</answer></qa_pair>
+ <qa_pair><question>Quelle différence, en secondes, sépare le repos standard du repos d’approche de l’exercice à la barre ?</question><answer>90</answer></qa_pair>
+ <qa_pair><question>Combien de séances actives incluent un exercice dont la consigne mentionne un banc ?</question><answer>1</answer></qa_pair>
+ <qa_pair><question>Quel est le minimum de répétitions hebdomadaires de l’exercice à la barre ?</question><answer>40</answer></qa_pair>
+ <qa_pair><question>Quel exercice est présent seulement dans les séances archivées ? Réponds par son id.</question><answer>walk</answer></qa_pair>
+</evaluation>

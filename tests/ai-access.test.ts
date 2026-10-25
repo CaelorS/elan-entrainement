@@ -20,7 +20,7 @@ test('OAuth isolation, immediate revocation, revision conflicts and admin bounda
  await db.exec(`reset role;set role authenticated;set request.jwt.claims='{"client_id":"claude"}';`);
  await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account required/);
  await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/permission denied/);
- await assert.rejects(db.query('select public.elan_sync($1)',[JSON.stringify(program)]),/row-level security/);
+ await assert.rejects(db.query('select public.elan_sync($1)',[JSON.stringify(program)]),/Cloud access denied/);
  assert.equal((await db.query('select * from public.elan_sessions')).rows.length,0);
  await db.exec(`set request.jwt.claim.sub='${a}'`);assert.equal((await db.query<any>('select public.elan_is_admin() as yes')).rows[0].yes,false);
  await db.exec(`set request.jwt.claim.sub='${b}';set request.jwt.claims='{}'`);
@@ -33,7 +33,7 @@ test('OAuth isolation, immediate revocation, revision conflicts and admin bounda
  await db.exec(`reset role;set role authenticated;set request.jwt.claim.sub='${a}'`);
  await assert.rejects(db.query('select public.elan_manage_user($1,$2)',[a,'remove_admin']),/own access/);
  await db.query('select public.elan_manage_user($1,$2)',[b,'suspend']);
- await db.exec(`set request.jwt.claim.sub='${b}'`);await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account/);
+ await db.exec(`set request.jwt.claim.sub='${b}'`);await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account/);await assert.rejects(db.query('select public.elan_sync()'),/Cloud access denied/);
  await db.exec(`set request.jwt.claim.sub='${a}'`);await db.query('select public.elan_manage_user($1,$2)',[b,'restore']);
  await db.exec(`set request.jwt.claim.sub='${b}'`);assert.equal((await db.query<any>('select public.elan_direct_access() as yes')).rows[0].yes,true);
  }finally{await db.close()}

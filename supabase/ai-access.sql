@@ -92,4 +92,54 @@ end $$;
 revoke all on function public.elan_direct_access(),public.elan_ai_access(text,text,boolean,boolean),public.elan_mcp_program(uuid,text,bigint,jsonb,bigint),public.elan_manage_user(uuid,text) from public,anon,authenticated;
 grant execute on function public.elan_direct_access(),public.elan_ai_access(text,text,boolean,boolean),public.elan_manage_user(uuid,text) to authenticated;
 grant execute on function public.elan_mcp_program(uuid,text,bigint,jsonb,bigint) to service_role;
+-- Refuse cloud sync explicitly for suspended accounts instead of returning empty history.
+create or replace function public.elan_sync(
+ p_program jsonb default null,
+ p_revision bigint default 0,
+ p_sessions jsonb default '[]'::jsonb,
+ p_runs jsonb default '[]'::jsonb
+) returns jsonb language plpgsql security invoker set search_path = '' as $$
+declare
+ owner_id uuid := auth.uid();
+ current_revision bigint;
+ current_program jsonb;
+ conflict boolean := false;
+ item jsonb;
+begin
+ if not public.elan_direct_access() then raise exception 'Cloud access denied' using errcode='42501'; end if;
+ if owner_id is null then raise exception 'Authentication required'; end if;
+ -- Serialize writes from this account, including the first insert.
+ perform pg_advisory_xact_lock(hashtextextended(owner_id::text,0));
+ select revision,payload into current_revision,current_program from public.elan_programs where user_id=owner_id;
+ current_revision := coalesce(current_revision,0);
+ if p_program is not null then
+  if jsonb_typeof(p_program->'catalogue') is distinct from 'array' or jsonb_typeof(p_program->'modeles') is distinct from 'array' then raise exception 'Invalid programme'; end if;
+  if p_revision <> current_revision then
+   -- Retrying the same accepted write after a lost network response is harmless.
+   conflict := p_program is distinct from current_program;
+  else
+   insert into public.elan_programs(user_id,payload,revision) values(owner_id,p_program,current_revision+1)
+    on conflict(user_id) do update set payload=excluded.payload,revision=excluded.revision,updated_at=now();
+   current_revision := current_revision+1;
+   current_program := p_program;
+  end if;
+ end if;
+ if jsonb_typeof(p_sessions) <> 'array' or jsonb_typeof(p_runs) <> 'array' then raise exception 'Invalid history'; end if;
+ for item in select value from jsonb_array_elements(p_sessions) loop
+  if coalesce(item->>'seance_uuid','')='' or jsonb_typeof(item->'series') is distinct from 'array' then raise exception 'Invalid session'; end if;
+  insert into public.elan_sessions(user_id,id,payload) values(owner_id,item->>'seance_uuid',case when item->>'_deleted'='true' then jsonb_build_object('seance_uuid',item->>'seance_uuid','series','[]'::jsonb,'_deleted',true) else item end)
+   on conflict(user_id,id) do update set payload=excluded.payload where public.elan_sessions.payload->>'_deleted' is distinct from 'true';
+ end loop;
+ for item in select value from jsonb_array_elements(p_runs) loop
+  if coalesce(item->>'uuid','')='' then raise exception 'Invalid run'; end if;
+  insert into public.elan_runs(user_id,id,payload) values(owner_id,item->>'uuid',item)
+   on conflict(user_id,id) do update set payload=excluded.payload;
+ end loop;
+ return jsonb_build_object('program',current_program,'revision',current_revision,'conflict',conflict,
+  'catalogue',coalesce((select jsonb_agg(payload order by id) from public.elan_exercises),'[]'::jsonb),
+  'deleted_sessions',coalesce((select jsonb_agg(id) from public.elan_sessions where user_id=owner_id and payload->>'_deleted'='true'),'[]'::jsonb),
+  'sessions',coalesce((select jsonb_agg(payload order by payload->>'heure_debut' desc) from public.elan_sessions where user_id=owner_id and payload->>'_deleted' is distinct from 'true'),'[]'::jsonb),
+  'runs',coalesce((select jsonb_agg(payload) from public.elan_runs where user_id=owner_id),'[]'::jsonb));
+end;
+$$;
 commit;

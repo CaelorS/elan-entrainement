@@ -61,7 +61,7 @@ Les administrateurs trouvent **Gérer les utilisateurs** dans Profil et réglage
 
 1. Exécuter `supabase/schema.sql`, puis `supabase/admin.sql` si nécessaire, et enfin `supabase/ai-access.sql` **avant d’activer OAuth**. Ne pas réexécuter `admin.sql` seul après cette migration : il rétablirait l’ancienne vérification de rôle.
 2. Déployer : `supabase functions deploy elan-mcp elan-admin --project-ref aciowkdgysvbecglwepy --use-api --import-map supabase/functions/deno.json`.
-3. Activer le serveur OAuth Supabase et l’enregistrement dynamique des clients. Configurer l’URL d’autorisation pour aboutir à `https://caelors.github.io/elan-entrainement/` avec le paramètre `authorization_id`. Conserver le Site URL et les redirections de récupération existants. Vérifier la redirection avec une demande PKCE réelle.
+3. Activer le serveur OAuth Supabase et l’enregistrement dynamique des clients. Avec le Site URL actuel (qui contient déjà `/elan-entrainement/`), utiliser `authorization_url_path = "/"` pour aboutir à `https://caelors.github.io/elan-entrainement/` avec le paramètre `authorization_id`. Conserver le Site URL et les redirections de récupération existants. Vérifier la redirection avec une demande PKCE réelle.
 4. Les clés serveur sont injectées par Supabase dans les Edge Functions, jamais dans Vite. `ELAN_APP_URL` peut personnaliser la destination des invitations ; défaut : l’URL publique ci-dessus. SMTP doit être configuré pour envoyer des invitations aux utilisateurs externes.
 5. Dans ChatGPT ou Claude, ajouter un connecteur MCP distant avec l’URL ci-dessus, s’authentifier et choisir les droits. La disponibilité des connecteurs dépend du compte et des règles de l’espace de travail. Aucun mot de passe ni clé administrative à transmettre à l’assistant.
 

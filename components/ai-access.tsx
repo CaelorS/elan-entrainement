@@ -1,3 +1,4 @@
+import './ai-access.css';
 import {useEffect,useState} from 'react';
 import type {OAuthAuthorizationDetails} from '@supabase/supabase-js';
 import {supabase} from '../lib/supabase';
