@@ -15,7 +15,7 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 | categorie | categorie | Catégorie libre ; force et echauffement pilotent le moteur. | "force" |
 | type_charge | type_charge | Matériel ; poids_du_corps est un alias de poids_corps. | "aucune" |
 | unilateral | unilateral | Un côté puis l’autre. | false |
-| increment_kg | increment_kg | Incrément de progression en kg. | 1 |
+| increment_kg | increment_kg | Incrément en kg conservé dans la fiche ; actuellement le moteur choisit son pas selon l’identifiant de l’exercice. | 1 |
 | consigne | consigne | Description technique du mouvement. | "" |
 | vigilance | vigilance | Point à surveiller. | "" |
 | objectif | objectif | Objectif de cet exercice. | "" |

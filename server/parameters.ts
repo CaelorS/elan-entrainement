@@ -10,7 +10,7 @@ export const exerciseSchema=z.object({
  categorie:z.string().max(100).default('force').describe('Catégorie libre ; force et echauffement pilotent le moteur.'),
  type_charge:z.enum(['aucune','barre','halteres','machine','poulie','elastique','poids_corps','poids_du_corps']).default('aucune').describe('Matériel ; poids_du_corps est un alias de poids_corps.').transform(v=>v==='poids_du_corps'?'poids_corps':v),
  unilateral:z.boolean().default(false).describe('Un côté puis l’autre.'),
- increment_kg:z.number().min(0).max(100).default(1).describe('Incrément de progression en kg.'),
+ increment_kg:z.number().min(0).max(100).default(1).describe('Incrément en kg conservé dans la fiche ; actuellement le moteur choisit son pas selon l’identifiant de l’exercice.'),
  consigne:text.default('').describe('Description technique du mouvement.'),
  vigilance:text.default('').describe('Point à surveiller.'),objectif:text.default('').describe('Objectif de cet exercice.'),
  media:z.union([z.literal(''),z.url().refine(v=>v.startsWith('https://'))]).default('').describe('URL HTTPS de l’image/vidéo, ou vide.'),

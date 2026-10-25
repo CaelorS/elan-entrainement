@@ -46,7 +46,7 @@
       },
       "increment_kg": {
         "default": 1,
-        "description": "Incrément de progression en kg.",
+        "description": "Incrément en kg conservé dans la fiche ; actuellement le moteur choisit son pas selon l’identifiant de l’exercice.",
         "type": "number",
         "minimum": 0,
         "maximum": 100
