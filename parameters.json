@@ -1,0 +1,567 @@
+{
+  "version": "1.1.0",
+  "duration_format": "MM:SS",
+  "exercise": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[\\w.-]+$",
+        "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
+      },
+      "nom": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Nom affiché."
+      },
+      "categorie": {
+        "default": "force",
+        "description": "Catégorie libre ; force et echauffement pilotent le moteur.",
+        "type": "string",
+        "maxLength": 100
+      },
+      "type_charge": {
+        "default": "aucune",
+        "description": "Matériel ; poids_du_corps est un alias de poids_corps.",
+        "type": "string",
+        "enum": [
+          "aucune",
+          "barre",
+          "halteres",
+          "machine",
+          "poulie",
+          "elastique",
+          "poids_corps",
+          "poids_du_corps"
+        ]
+      },
+      "unilateral": {
+        "default": false,
+        "description": "Un côté puis l’autre.",
+        "type": "boolean"
+      },
+      "increment_kg": {
+        "default": 1,
+        "description": "Incrément de progression en kg.",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "consigne": {
+        "default": "",
+        "description": "Description technique du mouvement.",
+        "type": "string",
+        "maxLength": 5000
+      },
+      "vigilance": {
+        "default": "",
+        "description": "Point à surveiller.",
+        "type": "string",
+        "maxLength": 5000
+      },
+      "objectif": {
+        "default": "",
+        "description": "Objectif de cet exercice.",
+        "type": "string",
+        "maxLength": 5000
+      },
+      "media": {
+        "default": "",
+        "description": "URL HTTPS de l’image/vidéo, ou vide.",
+        "anyOf": [
+          {
+            "type": "string",
+            "const": ""
+          },
+          {
+            "type": "string",
+            "format": "uri"
+          }
+        ]
+      },
+      "reference_kg": {
+        "description": "Charge de référence en kg ; null efface la référence. Date mise à jour automatiquement.",
+        "anyOf": [
+          {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2000
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "intercalaire": {
+        "default": false,
+        "description": "Exercice proposé pendant les repos.",
+        "type": "boolean"
+      },
+      "audio_nom": {
+        "description": "Nom du fichier audio hérité (ex. squat.m4a), conservé même si le lecteur utilise la synthèse vocale.",
+        "type": "string",
+        "maxLength": 500
+      },
+      "statut": {
+        "description": "Statut de catalogue, généralement actif. Aucun effet de suspension de compte.",
+        "type": "string",
+        "maxLength": 100
+      }
+    },
+    "required": [
+      "id",
+      "nom"
+    ],
+    "additionalProperties": false
+  },
+  "session": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^[\\w.-]+$",
+        "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
+      },
+      "nom": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Titre de la séance."
+      },
+      "sous_titre": {
+        "default": "",
+        "description": "Sous-titre.",
+        "type": "string",
+        "maxLength": 300
+      },
+      "jours": {
+        "default": [],
+        "description": "0 dimanche, 1 lundi … 6 samedi ; [] = à la carte.",
+        "maxItems": 7,
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "duree_estimee": {
+        "description": "Durée indicative MM:SS.",
+        "default": "00:00",
+        "type": "string",
+        "pattern": "^\\d{1,5}:[0-5]\\d$"
+      },
+      "pauses_explicites": {
+        "description": "Placement précis des intercalaires via pause ; sinon placement automatique.",
+        "type": "boolean"
+      },
+      "archive": {
+        "description": "Archivée si true ; conservée si omis lors d’une modification.",
+        "type": "boolean"
+      },
+      "actif_du": {
+        "description": "Début de validité YYYY-MM-DD, vide = sans borne ; création : date du jour.",
+        "anyOf": [
+          {
+            "type": "string",
+            "const": ""
+          },
+          {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        ]
+      },
+      "actif_au": {
+        "description": "Fin de validité YYYY-MM-DD, vide = sans borne.",
+        "anyOf": [
+          {
+            "type": "string",
+            "const": ""
+          },
+          {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          }
+        ]
+      },
+      "exercices": {
+        "minItems": 1,
+        "maxItems": 100,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "exercice_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "pattern": "^[\\w.-]+$",
+              "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
+            },
+            "ordre": {
+              "description": "Ordre stable et unique ; omis = position dans la liste, à partir de 1. Les liens intercalaires utilisent cet ordre.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "series": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Séries ou passages."
+            },
+            "reps_min": {
+              "default": 0,
+              "description": "Minimum de répétitions par série et par côté.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "reps_max": {
+              "default": 0,
+              "description": "Maximum de répétitions ; égal au minimum pour une cible fixe.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "mesure": {
+              "type": "string",
+              "enum": [
+                "reps",
+                "duration",
+                "distance",
+                "execution"
+              ],
+              "description": "Répétitions, chronométré, mètres ou exécution libre."
+            },
+            "duree": {
+              "description": "Durée par série/côté ; recalculée si cycle ou étapes.",
+              "default": "00:00",
+              "type": "string",
+              "pattern": "^\\d{1,5}:[0-5]\\d$"
+            },
+            "repos": {
+              "description": "Repos des séries ; forcé à 00:00 pour un intercalaire.",
+              "default": "00:00",
+              "type": "string",
+              "pattern": "^\\d{1,5}:[0-5]\\d$"
+            },
+            "repos_approche": {
+              "description": "Repos d’approche ; null = moitié du repos standard.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{1,5}:[0-5]\\d$",
+                  "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "distance_m": {
+              "description": "Distance par passage en mètres ; null efface.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "approche": {
+              "default": false,
+              "description": "Active les trois séries d’approche calculées par le moteur.",
+              "type": "boolean"
+            },
+            "intercalaire_de": {
+              "default": [],
+              "description": "Ordres des exercices principaux dont les repos accueillent cette entrée.",
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            },
+            "note": {
+              "default": "",
+              "description": "Note propre à cette séance.",
+              "type": "string",
+              "maxLength": 5000
+            },
+            "format": {
+              "description": "Texte de format libre hérité ; ne remplace pas les paramètres chiffrés.",
+              "type": "string",
+              "maxLength": 5000
+            },
+            "jours": {
+              "description": "0 dimanche à 6 samedi ; null = tous les jours, [] = aucun jour. Filtre propre à cette entrée.",
+              "anyOf": [
+                {
+                  "maxItems": 7,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "angle_deg": {
+              "description": "Angle en degrés ; affichage actuellement réservé au squat isométrique.",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 180
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "durees": {
+              "description": "Une durée MM:SS par série ; null efface. Exclusif avec cycle et steps.",
+              "anyOf": [
+                {
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^\\d{1,5}:[0-5]\\d$",
+                    "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "steps": {
+              "description": "Étapes chronométrées d’échauffement ; null efface. Une seule séquence, sans séries d’approche ni intercalaire.",
+              "anyOf": [
+                {
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "exercice_id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100,
+                        "pattern": "^[\\w.-]+$",
+                        "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
+                      },
+                      "duree": {
+                        "type": "string",
+                        "pattern": "^\\d{1,5}:[0-5]\\d$",
+                        "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
+                      },
+                      "consigne": {
+                        "type": "string",
+                        "maxLength": 5000,
+                        "description": "Consigne de cette étape."
+                      }
+                    },
+                    "required": [
+                      "exercice_id",
+                      "duree",
+                      "consigne"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cycle": {
+              "description": "Cycles contraction/relâchement ; null efface. Durée par série calculée.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100,
+                      "description": "Nombre de cycles."
+                    },
+                    "work": {
+                      "description": "Contraction MM:SS.",
+                      "type": "string",
+                      "pattern": "^\\d{1,5}:[0-5]\\d$"
+                    },
+                    "rest": {
+                      "description": "Relâchement MM:SS.",
+                      "type": "string",
+                      "pattern": "^\\d{1,5}:[0-5]\\d$"
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "work",
+                    "rest"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "pause": {
+              "description": "Placement précis dans la pause d’un seul parent, avec pauses_explicites=true ; null efface.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "approche": {
+                      "type": "boolean",
+                      "description": "Pause après une série d’approche si true, de travail sinon."
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100,
+                      "description": "Numéro de série à partir de 1."
+                    }
+                  },
+                  "required": [
+                    "approche",
+                    "index"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "exercice_id",
+            "series",
+            "mesure"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Liste complète des entrées ; remplace la liste précédente."
+      }
+    },
+    "required": [
+      "id",
+      "nom",
+      "exercices"
+    ],
+    "additionalProperties": false
+  },
+  "storage_mapping": {
+    "exercise": {
+      "id": "id",
+      "nom": "nom",
+      "categorie": "categorie",
+      "type_charge": "type_charge",
+      "unilateral": "unilateral",
+      "increment_kg": "increment_kg",
+      "consigne": "consigne",
+      "vigilance": "vigilance",
+      "objectif": "objectif",
+      "media": "media",
+      "reference_kg": "reference_kg",
+      "intercalaire": "intercalaire",
+      "audio_nom": "audio_nom",
+      "statut": "statut"
+    },
+    "session": {
+      "id": "id",
+      "nom": "nom",
+      "sous_titre": "sous_titre",
+      "jours": "jours",
+      "duree_estimee": "duree_min",
+      "pauses_explicites": "pauses_explicites",
+      "archive": "archive",
+      "actif_du": "actif_du",
+      "actif_au": "actif_au",
+      "exercices": "exercices"
+    },
+    "entry": {
+      "exercice_id": "exercice_id",
+      "ordre": "ordre",
+      "series": "series",
+      "reps_min": "reps_min",
+      "reps_max": "reps_max",
+      "mesure": "mesure",
+      "duree": "duree_s",
+      "repos": "repos_s",
+      "repos_approche": "approche_repos_s",
+      "distance_m": "distance_m",
+      "approche": "approche",
+      "intercalaire_de": "intercalaire_de",
+      "note": "note",
+      "format": "format",
+      "jours": "jours",
+      "angle_deg": "angle_deg",
+      "durees": "durees_s",
+      "steps": "steps",
+      "cycle": "cycle",
+      "pause": "pause"
+    },
+    "step": {
+      "exercice_id": "exercice_id",
+      "duree": "duree_s",
+      "consigne": "consigne"
+    },
+    "cycle": {
+      "count": "count",
+      "work": "work_s",
+      "rest": "rest_s"
+    },
+    "pause": {
+      "approche": "approche",
+      "index": "index"
+    }
+  },
+  "read_only": {
+    "exercise": {
+      "reference_at": "Date technique de la charge de référence, millisecondes Unix ; automatique.",
+      "revision": "Révision technique automatique."
+    },
+    "session": {
+      "version": "Version interne automatique, non présentée à l’utilisateur."
+    },
+    "entry": {
+      "revision": "Révision technique automatique.",
+      "duree_totale_s": "Total calculé pour la présentation, jamais une consigne de durée.",
+      "repos_total_s": "Total calculé des repos pour la présentation."
+    }
+  },
+  "semantics": [
+    "Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.",
+    "Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.",
+    "Les champs techniques sont consultables dans les résultats bruts ; ils ne sont pas acceptés en écriture. Les entraînements réalisés et leurs mesures ne font pas partie de la programmation."
+  ]
+}

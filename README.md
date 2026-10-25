@@ -51,7 +51,7 @@ La connexion propose « Mot de passe oublié ». Configurer la Site URL sur l’
 
 ## Assistants IA et administration
 
-Le connecteur distant est `https://aciowkdgysvbecglwepy.supabase.co/functions/v1/elan-mcp` (Streamable HTTP). Il fournit six outils : chercher les exercices, lister/lire les séances, enregistrer un exercice, enregistrer une séance complète, archiver/restaurer une séance. Les durées d’entrée sont au format `MM:SS`. Une révision est requise pour chaque écriture afin de refuser les écrasements concurrents.
+Le connecteur distant est `https://aciowkdgysvbecglwepy.supabase.co/functions/v1/elan-mcp` (Streamable HTTP). Il fournit sept outils : consulter le référentiel des paramètres, chercher les exercices, lister/lire les séances, enregistrer un exercice, enregistrer une séance complète, archiver/restaurer une séance. Les durées d’entrée sont au format `MM:SS`. Une révision est requise pour chaque écriture afin de refuser les écrasements concurrents.
 
 Le consentement s’affiche à la racine de l’application lorsqu’un `authorization_id` est présent. L’utilisateur choisit la lecture seule ou la lecture/modification ; les droits métiers sont conservés dans `elan_ai_grants`, distincts des scopes d’identité OAuth. Profil et réglages → Assistants IA permet de révoquer ces droits immédiatement puis d’invalider le grant OAuth. Les jetons OAuth n’accèdent jamais directement aux tables, à l’historique ou aux fonctions d’administration. Une réautorisation exige un jeton émis après le nouvel accord.
 
@@ -66,3 +66,5 @@ Les administrateurs trouvent **Gérer les utilisateurs** dans Profil et réglage
 5. Dans ChatGPT ou Claude, ajouter un connecteur MCP distant avec l’URL ci-dessus, s’authentifier et choisir les droits. La disponibilité des connecteurs dépend du compte et des règles de l’espace de travail. Aucun mot de passe ni clé administrative à transmettre à l’assistant.
 
 Tests : `npm test`, `npm run build`, `npm ci --prefix server`, `npm run check --prefix server`, `npm test --prefix server`. Les tests SQL exécutent les politiques réelles dans PGlite avec plusieurs rôles et comptes. Les tests MCP exercent le protocole HTTP du SDK officiel. Les tests réels de consentement/confirmation d’e-mail requièrent un compte utilisateur et ne sont pas simulés par ces tests.
+
+Le référentiel complet est dans [PARAMETERS.md](PARAMETERS.md) et [parameters.json](parameters.json), générés par `node --experimental-strip-types server/generate-reference.ts`. Le MCP expose `elan_get_parameters` et des objets `editable_session` / `editable_exercises` avec durées MM:SS pour réutiliser les données sans perdre les réglages avancés. Les séances lues sont les versions courantes (anciennes versions internes conservées).
