@@ -7,7 +7,7 @@ test('OAuth isolation, immediate revocation, revision conflicts and admin bounda
  const program={catalogue:[],modeles:[]};
  try{
  await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant usage on schema auth,public to anon,authenticated,service_role;insert into auth.users values('${a}','admin@example.invalid'),('${b}','member@example.invalid');`);
- for(const f of ['schema','admin','ai-access','ai-access'])await db.exec(await readFile(new URL('../supabase/'+f+'.sql',import.meta.url),'utf8'));
+ for(const f of ['schema','admin','ai-access','ai-access','history-access','history-access'])await db.exec(await readFile(new URL('../supabase/'+f+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into public.elan_admins values('${a}');set role authenticated;set request.jwt.claim.sub='${b}';`);
  await assert.rejects(db.query('select public.elan_manage_user($1,$2)',[a,'suspend']),/Administrator required/);
  await db.query('select public.elan_ai_access($1,$2,$3)', ['claude','Claude',false]);
@@ -17,8 +17,25 @@ test('OAuth isolation, immediate revocation, revision conflicts and admin bounda
  assert.equal((await db.query<any>('select public.elan_mcp_program($1,$2,$3) as s',args)).rows[0].s.can_write,false);
  await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]),/Read-only/);
  await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',[a,'claude',iat]),/not authorized/);
+ // History consent is separate from program read/write, and only the owner is visible.
+ await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',args),/History access/);
+ await db.exec('reset role');
+ for(const [owner,id,date,status,deleted] of [[a,'private','2026-10-25','terminee',false],[b,'one','2026-10-24','terminee',false],[b,'two','2026-10-25','abandonnee',false],[b,'deleted','2026-10-26','terminee',true]])await db.query('insert into public.elan_sessions values($1,$2,$3)',[owner,id,JSON.stringify({seance_uuid:id,seance_id:'lower',date,statut:status,series:[{exercice_id:'squat',reps_faites:4}],retours:[{retour:'ok'}],_deleted:deleted})]);
+ await db.exec('set role authenticated');await db.query('select public.elan_ai_history_access($1,true)',['claude']);
+ await db.exec('reset role;set role service_role');
+ let hist=(await db.query<any>('select public.elan_mcp_history($1,$2,$3,null,null,null,null,null,null,0,1) as h',args)).rows[0].h;
+ assert.equal(hist.total,2);assert.equal(hist.next_offset,1);assert.equal(hist.workouts[0].seance_uuid,'two');assert.equal(hist.workouts[0].series,undefined);
+ hist=(await db.query<any>("select public.elan_mcp_history($1,$2,$3,null,'2026-10-24','2026-10-24','lower','squat','terminee') as h",args)).rows[0].h;assert.equal(hist.total,1);
+ for(const id of ['private','deleted','missing'])assert.equal((await db.query<any>('select public.elan_mcp_history($1,$2,$3,$4) as h',[...args,id])).rows[0].h.workout,null);
+ hist=(await db.query<any>('select public.elan_mcp_history($1,$2,$3,$4) as h',[...args,'one'])).rows[0].h;assert.equal(hist.workout.series[0].reps_faites,4);assert.equal(hist.workout.retours[0].retour,'ok');
+ await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',[a,'claude',iat]),/History access/);
+ await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',[b,'claude',0]),/History access/);
+ await db.exec('reset role;set role authenticated');await db.query('select public.elan_ai_history_access($1,false)',['claude']);
+ await db.exec('reset role;set role service_role');await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',args),/History access/);
  await db.exec(`reset role;set role authenticated;set request.jwt.claims='{"client_id":"claude"}';`);
  await assert.rejects(db.query('select public.elan_ai_access()'),/Direct account required/);
+ await assert.rejects(db.query('select public.elan_ai_history_access($1,true)',['claude']),/Direct account/);
+ await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',args),/permission denied/);
  await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/permission denied/);
  await assert.rejects(db.query('select public.elan_sync($1)',[JSON.stringify(program)]),/Cloud access denied/);
  assert.equal((await db.query('select * from public.elan_sessions')).rows.length,0);
@@ -29,7 +46,7 @@ test('OAuth isolation, immediate revocation, revision conflicts and admin bounda
  await db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]);
  await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3,$4,$5)',[...args,JSON.stringify(program),0]),/Programme changed/);
  await db.exec('reset role;set role authenticated');await db.query('select public.elan_ai_access($1,null,false,true)',['claude']);
- await db.exec('reset role;set role service_role');await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/revoked/);
+ await db.exec('reset role;set role service_role');await assert.rejects(db.query('select public.elan_mcp_program($1,$2,$3)',args),/revoked/);await assert.rejects(db.query('select public.elan_mcp_history($1,$2,$3)',args),/History access/);
  await db.exec(`reset role;set role authenticated;set request.jwt.claim.sub='${a}'`);
  await assert.rejects(db.query('select public.elan_manage_user($1,$2)',[a,'remove_admin']),/own access/);
  await db.query('select public.elan_manage_user($1,$2)',[b,'suspend']);

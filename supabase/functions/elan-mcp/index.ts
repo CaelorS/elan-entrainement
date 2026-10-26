@@ -23,7 +23,10 @@ Deno.serve(async(req:Request)=>{
    let bytes:Uint8Array;try{bytes=await boundedBody(req,1000000)}catch{return json({error:'request_too_large'},413)}
    req=new Request(req.url,{method:req.method,headers:req.headers,body:new TextDecoder().decode(bytes)});
   }
-  const handler=createElanHandler({read:()=>call(),write:(p,r)=>call(p,r)});
+  const handler=createElanHandler({read:()=>call(),write:(p,r)=>call(p,r),history:async(q)=>{
+   const {data,error}=await service.rpc('elan_mcp_history',{p_user:c.sub,p_client:c.client_id,p_iat:c.iat,p_id:q.id??null,p_from:q.date_from??null,p_to:q.date_to??null,p_session:q.session_id??null,p_exercise:q.exercise_id??null,p_status:q.status??null,p_offset:q.offset,p_limit:q.limit});
+   if(error)throw Error(error.code==='42501'?'Lecture de l’historique non autorisée ou révoquée. Active-la dans Élan → Profil et réglages → Assistants IA.':'Impossible de lire l’historique. Vérifie les filtres puis réessaie.');return data;
+  }});
   const response=await handler.fetch(req);const headers=new Headers(response.headers);for(const [k,v] of Object.entries(cors))headers.set(k,v);return new Response(response.body,{status:response.status,headers});
  }catch{return json({error:'access_denied',message:'Reconnecte Élan ou vérifie les autorisations.'},403)}
 });
