@@ -25,3 +25,12 @@ test('navigation uses the release-specific HTML even when a mutable index is sta
  handlers.fetch({request:{url:'https://example.org/elan-entrainement/',method:'GET',mode:'navigate'},respondWith:(p:Promise<string>)=>{response=p}});
  assert.equal(await response,'new HTML');assert.deepEqual(lookups,['/elan-entrainement/app-shell-new.html']);
 });
+
+test('the standalone icon board is served as an asset instead of the app shell',async()=>{
+ const handlers:Record<string,Function>={};let matched='';
+ const self={location:{href:'https://example.org/elan-entrainement/sw.js',origin:'https://example.org'},addEventListener:(event:string,h:Function)=>handlers[event]=h};
+ vm.runInNewContext(script.replace('const CORE=[];',"const CORE=['/elan-entrainement/workout-icons/catalogue.html'];"),{self,URL,caches:{open:async()=>({match:async(path:string)=>{matched=path;return 'board'}})}});
+ let response:Promise<unknown>|undefined;
+ handlers.fetch({request:{method:'GET',mode:'navigate',url:'https://example.org/elan-entrainement/workout-icons/catalogue.html'},respondWith:(p:Promise<unknown>)=>response=p});
+ assert.equal(await response,'board');assert.equal(matched,'/elan-entrainement/workout-icons/catalogue.html');
+});

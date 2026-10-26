@@ -25,7 +25,7 @@ self.addEventListener('activate',event=>event.waitUntil((async()=>{
 self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);
  if(event.request.method!=='GET'||url.origin!==self.location.origin||!url.pathname.startsWith(BASE))return;
- if(event.request.mode==='navigate'){
+ if(event.request.mode==='navigate'&&url.pathname!==BASE+'workout-icons/catalogue.html'){
   // Keep the document and assets on the same release until a safe activation.
   event.respondWith(caches.open(CACHE).then(async cache=>(await cache.match(SHELL||BASE))??fetch(event.request)));return;
  }
