@@ -1,3 +1,4 @@
+import {workoutIcons,inferWorkoutIcon} from '../lib/workout-icons.ts';
 import {z} from 'zod';
 export const id=z.string().min(1).max(100).regex(/^[\w.-]+$/).describe('Identifiant stable ; réutiliser pour modifier, nouveau pour créer.');
 const text=z.string().max(5000);
@@ -40,7 +41,7 @@ export const entrySchema=z.object({
  pause:z.object({approche:z.boolean().describe('Pause après une série d’approche si true, de travail sinon.'),index:z.number().int().min(1).max(100).describe('Numéro de série à partir de 1.')}).strict().nullable().optional().describe('Placement précis dans la pause d’un seul parent, avec pauses_explicites=true ; null efface.')
 }).strict();
 export const sessionSchema=z.object({
- id,nom:z.string().trim().min(1).max(200).describe('Titre de la séance.'),sous_titre:z.string().max(300).default('').describe('Sous-titre.'),
+ id,icon_id:z.enum(workoutIcons.map(icon=>icon.id) as [string,...string[]]).optional().describe('Illustration : identifiant de elan_list_workout_icons. Omission : conserver le choix existant, sinon attribution automatique.'),nom:z.string().trim().min(1).max(200).describe('Titre de la séance.'),sous_titre:z.string().max(300).default('').describe('Sous-titre.'),
  jours:days.default([]).describe('0 dimanche, 1 lundi … 6 samedi ; [] = à la carte.'),
  duree_estimee:duration.prefault('00:00').describe('Durée indicative MM:SS.'),
  pauses_explicites:z.boolean().optional().describe('Placement précis des intercalaires via pause ; sinon placement automatique.'),
@@ -52,12 +53,12 @@ export const sessionSchema=z.object({
 type Json=Record<string,any>;
 export const fieldMap={
  exercise:{id:'id',nom:'nom',categorie:'categorie',type_charge:'type_charge',unilateral:'unilateral',increment_kg:'increment_kg',consigne:'consigne',vigilance:'vigilance',objectif:'objectif',media:'media',reference_kg:'reference_kg',intercalaire:'intercalaire',audio_nom:'audio_nom',statut:'statut'},
- session:{id:'id',nom:'nom',sous_titre:'sous_titre',jours:'jours',duree_estimee:'duree_min',pauses_explicites:'pauses_explicites',archive:'archive',actif_du:'actif_du',actif_au:'actif_au',exercices:'exercices'},
+ session:{id:'id',icon_id:'icon_id',nom:'nom',sous_titre:'sous_titre',jours:'jours',duree_estimee:'duree_min',pauses_explicites:'pauses_explicites',archive:'archive',actif_du:'actif_du',actif_au:'actif_au',exercices:'exercices'},
  entry:{exercice_id:'exercice_id',ordre:'ordre',series:'series',reps_min:'reps_min',reps_max:'reps_max',mesure:'mesure',duree:'duree_s',repos:'repos_s',repos_approche:'approche_repos_s',distance_m:'distance_m',approche:'approche',intercalaire_de:'intercalaire_de',note:'note',format:'format',jours:'jours',angle_deg:'angle_deg',durees:'durees_s',steps:'steps',cycle:'cycle',pause:'pause'},
  step:{exercice_id:'exercice_id',duree:'duree_s',consigne:'consigne'},cycle:{count:'count',work:'work_s',rest:'rest_s'},pause:{approche:'approche',index:'index'}
 };
 export const managedFields={exercise:{reference_at:'Date technique de la charge de référence, millisecondes Unix ; automatique.',revision:'Révision technique automatique.'},session:{version:'Version interne automatique, non présentée à l’utilisateur.'},entry:{revision:'Révision technique automatique.',duree_totale_s:'Total calculé pour la présentation, jamais une consigne de durée.',repos_total_s:'Total calculé des repos pour la présentation.'}};
-export function parameterReference(){return {version:'1.1.0',duration_format:'MM:SS',exercise:z.toJSONSchema(exerciseSchema,{io:'input'}),session:z.toJSONSchema(sessionSchema,{io:'input'}),storage_mapping:fieldMap,read_only:managedFields,semantics:['Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.','Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.','Les champs techniques sont consultables dans les résultats bruts ; ils ne sont pas acceptés en écriture. Les entraînements réalisés et leurs mesures ne font pas partie de la programmation.']}}
+export function parameterReference(){return {version:'1.3.0',workout_icons:workoutIcons,duration_format:'MM:SS',exercise:z.toJSONSchema(exerciseSchema,{io:'input'}),session:z.toJSONSchema(sessionSchema,{io:'input'}),storage_mapping:fieldMap,read_only:managedFields,semantics:['Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.','Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.','Les champs techniques sont consultables dans les résultats bruts ; ils ne sont pas acceptés en écriture. Les entraînements réalisés et leurs mesures ne font pas partie de la programmation.']}}
 export function fmt(seconds:number){const n=Math.max(0,Math.round(seconds));return `${Math.floor(n/60).toString().padStart(2,'0')}:${(n%60).toString().padStart(2,'0')}`}
 export function editableExercise(e:Json){return Object.fromEntries(Object.keys(fieldMap.exercise).filter(k=>e[k]!==undefined).map(k=>[k,e[k]]))}
 export function editableSession(m:Json){
@@ -83,7 +84,7 @@ export function sessionModel(input:z.output<typeof sessionSchema>,previous?:Json
  if(out.steps?.length)out.duree_s=out.steps.reduce((n:number,s:Json)=>n+s.duree_s,0);
  if(out.cycle)out.duree_s=out.cycle.count*(out.cycle.work_s+out.cycle.rest_s);
  if(out.intercalaire_de.length)out.repos_s=0;
- return out});return m;
+ return out});m.icon_id=input.icon_id??previous?.icon_id??inferWorkoutIcon(m);return m;
 }
 export function validateModel(m:Json,catalogue:Json[]){
  const ids=new Set(catalogue.map(e=>e.id));const orders=new Map<number,Json>();

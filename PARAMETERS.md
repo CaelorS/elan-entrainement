@@ -30,6 +30,7 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 | Champ MCP | Stockage | Description | Défaut |
 |---|---|---|---|
 | id | id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
+| icon_id | icon_id | Illustration : identifiant de elan_list_workout_icons. Omission : conserver le choix existant, sinon attribution automatique. | — |
 | nom | nom | Titre de la séance. | — |
 | sous_titre | sous_titre | Sous-titre. | "" |
 | jours | jours | 0 dimanche, 1 lundi … 6 samedi ; [] = à la carte. | [] |
@@ -107,6 +108,31 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 - Le moteur crée trois séries d’approche avec ses propres facteurs de charge/répétitions. Ces facteurs ne sont pas des champs configurables.
 - Angle : affichage spécifique au squat isométrique. audio_nom et format sont des informations héritées, sans garantie de présentation dans tous les écrans.
 - reference_kg est la charge de référence du catalogue, pas une charge imposée par série. Les charges réellement réalisées, RIR/RPE et notes de fin de séance appartiennent à l’historique, accessible en lecture seule via elan_get_workout.
+
+## Illustrations de séances
+
+Découverte : `elan_list_workout_icons`. Choix via `elan_save_session.session.icon_id`. Omission : conserver le choix existant, sinon attribution automatique.
+
+- **full_body** — Corps entier : Silhouette entière, pour une séance sollicitant tout le corps.
+- **upper_body** — Haut du corps : Buste et bras, pour le travail du haut du corps.
+- **lower_body** — Bas du corps : Bassin et jambes, pour les séances du bas du corps.
+- **push** — Poussée : Bras en extension et flèche sortante, pour les mouvements de poussée.
+- **pull** — Tirage : Bras ramenés vers le buste, pour les mouvements de tirage.
+- **strength** — Force / haltères : Haltère chargé, pour la musculation et la force.
+- **hypertrophy** — Hypertrophie : Bras fléchi et muscle, pour le développement musculaire.
+- **core** — Abdos / gainage : Buste et sangle abdominale, pour le gainage et les abdominaux.
+- **mobility** — Mobilité : Articulation entourée d’une flèche, pour l’amplitude et la mobilité.
+- **stretching** — Étirements : Silhouette en étirement latéral.
+- **morning_routine** — Routine matinale : Soleil levant, pour les routines du matin.
+- **running** — Course à pied : Coureur en mouvement.
+- **cycling** — Cyclisme : Vélo et cycliste.
+- **swimming** — Natation : Nageur au-dessus des vagues.
+- **triathlon** — Triathlon : Trois disciplines : nage, vélo et course.
+- **crossfit** — Cross-training : Kettlebell, pour les séances de préparation physique variée.
+- **hiit** — HIIT / fractionné : Chronomètre et éclair, pour les efforts par intervalles.
+- **recovery** — Récupération : Feuille au creux d’une main, pour les séances de récupération.
+- **balance** — Équilibre : Silhouette sur un pied, pour la stabilité et la proprioception.
+- **cardio** — Cardio général : Cœur et pulsation, pour l’endurance cardiovasculaire.
 
 ## Historique en lecture seule
 

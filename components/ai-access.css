@@ -6,3 +6,10 @@
 .ai-connections input[readonly]{font-size:.8rem;width:100%}
 .auth-card .switch-row input[type=checkbox],.ai-connections .switch-row input[type=checkbox]{width:20px;height:20px;min-height:20px;flex:0 0 20px;padding:0;accent-color:var(--primary,#c5f567);cursor:pointer}
 .auth-card .switch-row{margin:16px 0;min-height:44px}
+
+/* Consent actions stay distinct from secondary explanatory text. */
+.consent-actions{display:grid;gap:12px;padding:20px 0 24px}
+.consent-actions>button{width:100%;min-height:52px;padding:14px 20px;margin:0;line-height:1.4}
+.consent-notes{padding:0 0 12px;overflow-wrap:anywhere}
+.consent-notes p{margin:0;line-height:1.65}
+.consent-notes p+p{margin-top:12px}

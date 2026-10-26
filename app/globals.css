@@ -100,7 +100,7 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .workout-action{position:fixed;bottom:0;left:0;right:0;z-index:30;padding:28px max(20px,calc((100vw - 680px)/2)) calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#101811 35%);pointer-events:none}
 .workout-action>button{pointer-events:auto;width:100%;margin:0}
 
-.bottom-nav button{outline:none!important;box-shadow:none!important}.bottom-nav button:focus-visible{text-decoration:underline;text-underline-offset:5px}
+.bottom-nav button{outline:none!important;box-shadow:none!important}.bottom-nav button:focus-visible{outline:2px solid currentColor!important;outline-offset:-5px}
 
 .streak,.calendar-legend,.calendar-legend>span{display:flex;align-items:center;gap:8px}.streak{color:#c5f567;margin:12px 0 20px}.compliance h4{margin:24px 0 12px}.calendar-legend{flex-wrap:wrap;font-size:12px;margin-top:16px;gap:18px}.week-cells .calendar-day.rest{background:#282c35;color:#b8c5dc}.week-cells .calendar-day.rest.done{background:#60728a;color:#fff}.week-cells .calendar-day.planned{border:1px dashed #637353;background:transparent;color:#bdd59c}.week-cells .calendar-day.rest.planned{border-color:#62748e;color:#a4b7d1}.calendar-day{min-width:0}
 
@@ -184,3 +184,12 @@ button.brand{background:none;border:0;color:inherit;padding:0}.subtle{font-size:
 .numeric-chip::placeholder,.exercise-card-editor input::placeholder,.exercise-card-editor textarea::placeholder,.duration-column input::placeholder{color:#71806a!important;-webkit-text-fill-color:#71806a!important;opacity:1}
 
 input[data-editable-value]::placeholder{color:color-mix(in srgb,currentColor 55%,transparent);-webkit-text-fill-color:currentColor;opacity:1}input[data-editable-value]:focus{caret-color:var(--primary)}
+
+/* Active colour remains; labels never acquire an underline. */
+.bottom-nav button,.bottom-nav button *{text-decoration:none!important}
+.bottom-nav button::after{display:none!important}
+/* Selected menu variant: Ligne épurée — six separate circular controls. */
+.workout-toolbar{justify-content:space-between;background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:8px 0;gap:6px}
+.workout-toolbar>button,.workout-toolbar>.toolbar-audio{flex:0 1 46px;width:46px;height:46px;min-height:46px;border:0;border-radius:50%;background:#263028;color:#f5f7ef}
+.workout-toolbar>button:active{background:#45533e}
+.workout-toolbar>button:focus-visible{outline:2px solid #c5f567;outline-offset:2px}

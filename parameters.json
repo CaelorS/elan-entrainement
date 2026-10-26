@@ -1,5 +1,107 @@
 {
-  "version": "1.1.0",
+  "version": "1.3.0",
+  "workout_icons": [
+    {
+      "id": "full_body",
+      "name": "Corps entier",
+      "description": "Silhouette entière, pour une séance sollicitant tout le corps."
+    },
+    {
+      "id": "upper_body",
+      "name": "Haut du corps",
+      "description": "Buste et bras, pour le travail du haut du corps."
+    },
+    {
+      "id": "lower_body",
+      "name": "Bas du corps",
+      "description": "Bassin et jambes, pour les séances du bas du corps."
+    },
+    {
+      "id": "push",
+      "name": "Poussée",
+      "description": "Bras en extension et flèche sortante, pour les mouvements de poussée."
+    },
+    {
+      "id": "pull",
+      "name": "Tirage",
+      "description": "Bras ramenés vers le buste, pour les mouvements de tirage."
+    },
+    {
+      "id": "strength",
+      "name": "Force / haltères",
+      "description": "Haltère chargé, pour la musculation et la force."
+    },
+    {
+      "id": "hypertrophy",
+      "name": "Hypertrophie",
+      "description": "Bras fléchi et muscle, pour le développement musculaire."
+    },
+    {
+      "id": "core",
+      "name": "Abdos / gainage",
+      "description": "Buste et sangle abdominale, pour le gainage et les abdominaux."
+    },
+    {
+      "id": "mobility",
+      "name": "Mobilité",
+      "description": "Articulation entourée d’une flèche, pour l’amplitude et la mobilité."
+    },
+    {
+      "id": "stretching",
+      "name": "Étirements",
+      "description": "Silhouette en étirement latéral."
+    },
+    {
+      "id": "morning_routine",
+      "name": "Routine matinale",
+      "description": "Soleil levant, pour les routines du matin."
+    },
+    {
+      "id": "running",
+      "name": "Course à pied",
+      "description": "Coureur en mouvement."
+    },
+    {
+      "id": "cycling",
+      "name": "Cyclisme",
+      "description": "Vélo et cycliste."
+    },
+    {
+      "id": "swimming",
+      "name": "Natation",
+      "description": "Nageur au-dessus des vagues."
+    },
+    {
+      "id": "triathlon",
+      "name": "Triathlon",
+      "description": "Trois disciplines : nage, vélo et course."
+    },
+    {
+      "id": "crossfit",
+      "name": "Cross-training",
+      "description": "Kettlebell, pour les séances de préparation physique variée."
+    },
+    {
+      "id": "hiit",
+      "name": "HIIT / fractionné",
+      "description": "Chronomètre et éclair, pour les efforts par intervalles."
+    },
+    {
+      "id": "recovery",
+      "name": "Récupération",
+      "description": "Feuille au creux d’une main, pour les séances de récupération."
+    },
+    {
+      "id": "balance",
+      "name": "Équilibre",
+      "description": "Silhouette sur un pied, pour la stabilité et la proprioception."
+    },
+    {
+      "id": "cardio",
+      "name": "Cardio général",
+      "description": "Cœur et pulsation, pour l’endurance cardiovasculaire."
+    }
+  ],
   "duration_format": "MM:SS",
   "exercise": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -128,6 +230,32 @@
         "maxLength": 100,
         "pattern": "^[\\w.-]+$",
         "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
+      },
+      "icon_id": {
+        "description": "Illustration : identifiant de elan_list_workout_icons. Omission : conserver le choix existant, sinon attribution automatique.",
+        "type": "string",
+        "enum": [
+          "full_body",
+          "upper_body",
+          "lower_body",
+          "push",
+          "pull",
+          "strength",
+          "hypertrophy",
+          "core",
+          "mobility",
+          "stretching",
+          "morning_routine",
+          "running",
+          "cycling",
+          "swimming",
+          "triathlon",
+          "crossfit",
+          "hiit",
+          "recovery",
+          "balance",
+          "cardio"
+        ]
       },
       "nom": {
         "type": "string",
@@ -498,6 +626,7 @@
     },
     "session": {
       "id": "id",
+      "icon_id": "icon_id",
       "nom": "nom",
       "sous_titre": "sous_titre",
       "jours": "jours",
