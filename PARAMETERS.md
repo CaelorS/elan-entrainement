@@ -73,6 +73,7 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 | exercice_id | exercice_id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
 | duree | duree_s | Minutes:secondes, ex. 03:30 (jamais un nombre de secondes). | — |
 | consigne | consigne | Consigne de cette étape. | — |
+| cote | cote | Côté de cette étape ; bilatéral par défaut. | — |
 
 ## Cycle
 

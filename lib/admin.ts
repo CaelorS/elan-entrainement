@@ -17,6 +17,7 @@ export class AdminPreviewStore extends TrainingStore {
  }
  async load(){return structuredClone(this.snapshot)}
  async persist(data:LocalData){this.snapshot=structuredClone(data)}
+ async persistCompleted(data:LocalData){await this.persist(data)}
  async flush(){}
  async sync(local:LocalData){return {data:{...local,programRevision:local.programRevision??0,deletedSessions:local.deletedSessions??[],pending:[],lastSync:Date.now()},sheets:false}}
 }

@@ -18,7 +18,7 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
  try{
   assert.equal(await unlockAudio(),true);assert.equal(session.type,'ambient');scheduleCountdown(11000,'rest','beeps');
   assert.deepEqual(tones.map(t=>t.starts[0]),[17,18,19,20]);
-  assert.deepEqual(tones.map(t=>t.frequency.value),[750,750,750,1200]);
+  assert.deepEqual(tones.map(t=>t.frequency.value),[750,750,750,1200]);assert.ok(tones[3].stops[0]-tones[3].starts[0]>=.5,'final beep is longer than the three short cues');
   stopSounds();assert.ok(tones.every(t=>t.stops.includes(-1)));
   scheduleCountdown(11000,'rest','beeps');instance!.state='interrupted';await unlockAudio();assert.deepEqual(tones.slice(-4).map(t=>t.starts[0]),[17,18,19,20]);
   const count=tones.length;scheduleCountdown(11000,'rest','silent');assert.equal(tones.length,count);

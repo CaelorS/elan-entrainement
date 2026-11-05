@@ -24,7 +24,7 @@ const warmModel={...model,exercices:[{...entry,exercice_id:'transition',ordre:1,
 const forceRun=():Run=>{const run=makeRun({...model,exercices:[{...entry,ordre:1}]},p,[],false);return {...run,loads:{squat:50}}};
 
 test('guided warm-up chains four stages totalling six minutes, without validation or feedback',()=>{
- let run=makeRun(warmModel,p,[],false),now=1000;
+ let run=makeRun(warmModel,p,[],false,0),now=1000;
  assert.equal(run.tasks.filter(t=>t.warmup).reduce((n,t)=>n+t.seconds,0),360);
  run=startExecution(enter(run,0,now),now);
  for(let i=0;i<4;i++){
@@ -183,25 +183,25 @@ import {manualLoadStep} from '../lib/activity.ts';
 test('manual weight controls use 2 kg for compound lifts and 1 kg for smaller exercises',()=>{for(const id of ['squat','hip_thrust','presse_45','souleve_terre_roumain','developpe_couche','tirage_vertical'])assert.equal(manualLoadStep({...squat,id}),2);for(const id of ['curl_marteau','elevations_laterales','triceps_pushdown','face_pull_poulie'])assert.equal(manualLoadStep({...squat,id}),1);assert.equal(squat.increment_kg,5);});
 
 import {tickWorkout,advanceWorkout,restartWorkout} from '../lib/engine.ts';
-test('rest expiry starts the next approach immediately without a ready screen',()=>{
+test('rest expiry prepares the next approach with the configured transition',()=>{
  let run=forceRun();run=confirmLoad(run,1000);run=startExecution(run,6000);run=completeExecution(run,10000);run=validateExecution(run,20,false,11000);
  assert.equal(run.phase,'REST');const end=run.deadline!;run=tickWorkout(run,20,end);
- assert.equal(run.phase,'EXECUTION');assert.equal(run.tasks[run.cursor].factor,.75);assert.equal(run.executionAt,end);
+ assert.equal(run.phase,'COUNTDOWN');assert.equal(run.tasks[run.cursor].factor,.75);assert.equal(run.deadline,end+5000);assert.equal(tickWorkout(run,20,end+5000).executionAt,end+5000);
 });
-test('expired rest skips an unfinished insert without recording it',()=>{
+test('expired rest waits for explicit filler confirmation by default',()=>{
  let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:100};
  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);const end=run.deadline!;
- run=tickWorkout(run,20,end);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows.length,0);
+ run=tickWorkout(run,20,end);assert.equal(run.phase,'REST');assert.equal(run.rows.length,0);run=completeFiller(run,20,false,end+5000);run=tickWorkout(run,20,end+5000);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows.length,1);
 });
 test('completed timed insert is recorded at rest expiry and pause freezes transitions',()=>{
  let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:45};
  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);
  const paused=togglePause(run,2000);assert.equal(tickWorkout(paused,20,100000),paused);
- run=tickWorkout(run,20,run.deadline!);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows.length,1);assert.equal(run.rows[0].intercalaire,true);
+ run=tickWorkout(run,20,run.deadline!,true);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows.length,1);assert.equal(run.rows[0].intercalaire,true);
 });
 test('rest expiring while statistics are edited retains those statistics and starts next set',()=>{
  let run=startExecution(confirmLoad(forceRun(),1000),6000);run=completeExecution(run,10000);run={...run,reps:4,auto:false,deadline:null};
- run=tickWorkout(run,20,run.restDeadline!);assert.equal(run.phase,'EXECUTION');assert.equal(run.rows[0].reps_faites,4);
+ run=tickWorkout(run,20,run.restDeadline!);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows[0].reps_faites,4);
 });
 test('next exercise still requests an unconfirmed load and restart resumes paused countdown',()=>{
  const run=forceRun();assert.equal(advanceWorkout({...run,cursor:-1},1000).phase,'CHARGE');
@@ -210,3 +210,32 @@ test('next exercise still requests an unconfirmed load and restart resumes pause
 });
 
 test('rowing uses one kg and skips a newer session without usable load',()=>{const ex={...squat,id:'rowing_haltere'};const older={...session(2,'facile',12,20),series:session(2).series.map(r=>({...r,exercice_id:ex.id,charge_kg:20})),retours:[{exercice_id:ex.id,retour:'facile'} as any]};const recent={...session(1),series:[{...older.series[0],charge_applicable:false,charge_kg:0}]};assert.equal(suggest(ex,entry,'other',[recent,older]).charge,21);assert.equal(suggest(ex,entry,'other',[{...older,retours:[{exercice_id:ex.id,retour:'trop_dur'} as any]}]).charge,19)});
+
+test('automatic mode records unfinished fillers instead of silently dropping them',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'long-insert',seconds:500};
+ run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);
+ const result=tickWorkout(run,20,run.deadline!,true);assert.equal(result.phase,'COUNTDOWN');assert.equal(result.rows.length,1);assert.equal(result.rows[0].valide_auto,true);
+});
+test('expired rest while validating a set cannot bypass its unconfirmed filler',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');run.tasks[i].fillers=[{...run.tasks[0],id:'insert',seconds:120}];
+ run=startExecution(confirmLoad(run,1000),6000);run=completeExecution(run,10000);run=tickWorkout(run,20,run.restDeadline!+1000);
+ assert.equal(run.phase,'REST');assert.equal(run.fillerIndex,0);assert.equal(run.rows.length,1);
+});
+test('a completed workout never becomes interrupted and retains its actual end time',()=>{
+ const run={...forceRun(),phase:'BILAN' as const,startedAt:1000,finishedAt:61000,rpe:7};const saved=finishRun(run,[],'abandonnee');assert.equal(saved.statut,'terminee');assert.equal(saved.duree_min,1);assert.equal(saved.rpe_global,7);
+});
+
+
+test('automatic guided transitions honor the configurable countdown and preserve completed rows',()=>{
+ let run=makeRun(warmModel,p,[],false,7);run=startExecution(enter(run,0,1000),1000);
+ const done=tickWorkout(run,20,121000);assert.equal(done.phase,'COUNTDOWN');assert.equal(done.deadline,128000);assert.equal(done.rows.length,1);assert.equal(done.rows[0].valide_auto,true);
+ assert.equal(tickWorkout(done,20,127999),done);assert.equal(tickWorkout(done,20,128000).phase,'EXECUTION');
+ const paused=togglePause(done,122000),resumed=togglePause(paused,132000);assert.equal(resumed.deadline,138000);
+ assert.equal(makeRun(warmModel,p,[],false).transitionSeconds,5);
+});
+
+test('warm-up steps preserve explicit left and right sides in the log',()=>{
+ const fixture={...warmModel,exercices:[{...warmModel.exercices[0],steps:[{exercice_id:'fente_psoas',duree_s:30,consigne:'Gauche',cote:'gauche' as const},{exercice_id:'fente_psoas',duree_s:30,consigne:'Droite',cote:'droite' as const}]}]};
+ let run=makeRun(fixture,p,[],false,0);assert.deepEqual(run.tasks.map(t=>[t.side,t.seconds]),[['gauche',30],['droite',30]]);
+ run=tickWorkout(run,20,run.deadline!);run=tickWorkout(run,20,run.deadline!);assert.equal(run.phase,'BILAN');assert.deepEqual(run.rows.map(r=>[r.cote,r.duree_s]),[['gauche',30],['droite',30]]);
+});

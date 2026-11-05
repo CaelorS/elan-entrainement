@@ -34,7 +34,7 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
   if(e.steps?.length){
    e.steps.forEach((step,i)=>{const stepEx=catalogue.get(step.exercice_id);if(!stepEx)return;
     const entry={...e,steps:undefined,cycle:undefined,exercice_id:step.exercice_id,mesure:'duration' as const,duree_s:step.duree_s};
-    out.push({id:uid(),kind:'set',ex:{...stepEx,unilateral:false,consigne:step.consigne},entry,index:1,side:'bilateral',approach:false,factor:1,reps:0,seconds:step.duree_s,warmup:true,step:i+1,stepCount:e.steps!.length});
+    out.push({id:uid(),kind:'set',ex:{...stepEx,unilateral:false,consigne:step.consigne},entry,index:1,side:step.cote??'bilateral',approach:false,factor:1,reps:0,seconds:step.duree_s,warmup:true,step:i+1,stepCount:e.steps!.length});
    });return;
   }
   if(e.approche){[0,.75,.9].forEach((factor,i)=>{
@@ -90,13 +90,12 @@ export function enter(run:Run,cursor:number,now=Date.now()):Run {
  if(!t)return {...run,cursor,phase:'BILAN',deadline:null,pausedAt:null,restDeadline:undefined,restCursor:undefined,finishedAt:now,savedAt:now};
  const confirmed=run.confirmedLoads??[...new Set(run.rows.filter(r=>!r.intercalaire).map(r=>r.exercice_id))];
  const phase:Run['phase']=t.kind==='review'?'REVIEW':t.kind==='rest'?'REST':hasLoad(t.ex)&&!isGuided(t)?confirmed.includes(t.ex.id)?'READY':'CHARGE':'COUNTDOWN';
- const sec=phase==='REVIEW'?AUTO_VALIDATE_SECONDS:phase==='REST'?t.seconds:phase==='COUNTDOWN'?5:0;
+ const sec=phase==='REVIEW'?AUTO_VALIDATE_SECONDS:phase==='REST'?t.seconds:phase==='COUNTDOWN'?(run.transitionSeconds??5):0;
  const carriedRest=phase==='REST'&&run.restCursor===cursor?run.restDeadline:undefined;
  const f=t.fillers?.[0];
  const next:Run={...run,confirmedLoads:confirmed,cursor,phase,phaseAt:now,executionAt:undefined,executionEnd:undefined,duration_s:undefined,angle_deg:(f??t).entry.angle_deg,filler_reps:f?.reps,distance_m:distanceFor(t.ex,t.entry),deadline:carriedRest??(sec?now+sec*1000:null),restDeadline:phase==='REST'?carriedRest??now+t.seconds*1000:undefined,restCursor:phase==='REST'?cursor:undefined,pausedAt:null,reps:t.reps,setNote:'',rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:f?.seconds?now+f.seconds*1000:null,fillerDone:[],savedAt:now};
- // Warm-up stages and the two sides of guided activities flow directly into one another.
- const previous=run.tasks[cursor-1];
- return phase==='COUNTDOWN'&&previous?.kind==='set'&&isGuided(previous)&&isGuided(t)?startExecution(next,now):next;
+ // Every timed hand-off offers the user's chosen preparation time, including sides.
+ return phase==='COUNTDOWN'&&sec===0?startExecution(next,now):next;
 }
 export function confirmLoad(run:Run,now=Date.now()):Run {
  if(run.phase!=='CHARGE')return run;
@@ -124,8 +123,8 @@ export function restartTimer(run:Run,target:'activity'|'rest'='activity',now=Dat
 }
 export function nextSet(run:Run){return run.tasks.slice(run.cursor+1).find(t=>t.kind==='set')}
 export function isLastSet(run:Run){const task=run.tasks[run.cursor];return task?.kind==='set'&&!task.approach&&!isGuided(task)&&!run.tasks.slice(run.cursor+1).some(t=>t.kind==='set'&&t.ex.id===task.ex.id&&!t.approach)}
-export function makeRun(model:Model,program:Program,history:Session[],reduced:boolean):Run{const now=Date.now();if(model.id==='bloc_matin'&&![2,5].includes(new Date(now).getDay())){const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);const moved=new Set(history.filter(s=>s.statut==='terminee'&&s.date===localDate(yesterday)).flatMap(s=>s.series.filter(r=>r.intercalaire).map(r=>r.exercice_id)));model={...model,exercices:model.exercices.filter(e=>!moved.has(e.exercice_id))}}const tasks=compile(model,program,reduced);const suggestions:Run['suggestions']={};const loads:Run['loads']={};const bands:Run['bands']={};for(const t of tasks){if(!hasLoad(t.ex)||suggestions[t.ex.id])continue;suggestions[t.ex.id]=suggest(t.ex,t.entry,model.id,history);if(suggestions[t.ex.id].charge!==null)loads[t.ex.id]=suggestions[t.ex.id].charge!;const previous=history.flatMap(s=>s.series).filter(r=>r.exercice_id===t.ex.id&&r.charge_libelle).at(-1);if(previous)bands[t.ex.id]=previous.charge_libelle;}
- return enter({uuid:uid(),model,tasks,cursor:0,phase:'COUNTDOWN',startedAt:now,phaseAt:now,deadline:null,pausedAt:null,rows:[],retours:{},loads,bands,reps:0,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:null,fillerDone:[],suggestions,savedAt:now,rpe:null,note:'',reduced},0,now)}
+export function makeRun(model:Model,program:Program,history:Session[],reduced:boolean,transitionSeconds=5):Run{const now=Date.now();if(model.id==='bloc_matin'&&![2,5].includes(new Date(now).getDay())){const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);const moved=new Set(history.filter(s=>s.statut==='terminee'&&s.date===localDate(yesterday)).flatMap(s=>s.series.filter(r=>r.intercalaire).map(r=>r.exercice_id)));model={...model,exercices:model.exercices.filter(e=>!moved.has(e.exercice_id))}}const tasks=compile(model,program,reduced);const suggestions:Run['suggestions']={};const loads:Run['loads']={};const bands:Run['bands']={};for(const t of tasks){if(!hasLoad(t.ex)||suggestions[t.ex.id])continue;suggestions[t.ex.id]=suggest(t.ex,t.entry,model.id,history);if(suggestions[t.ex.id].charge!==null)loads[t.ex.id]=suggestions[t.ex.id].charge!;const previous=history.flatMap(s=>s.series).filter(r=>r.exercice_id===t.ex.id&&r.charge_libelle).at(-1);if(previous)bands[t.ex.id]=previous.charge_libelle;}
+ return enter({transitionSeconds:Math.max(0,Math.min(60,Math.round(transitionSeconds))),uuid:uid(),model,tasks,cursor:0,phase:'COUNTDOWN',startedAt:now,phaseAt:now,deadline:null,pausedAt:null,rows:[],retours:{},loads,bands,reps:0,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:null,fillerDone:[],suggestions,savedAt:now,rpe:null,note:'',reduced},0,now)}
 export function taskLoad(run:Run,t:Task,barKg:number){if(!hasWeight(t.ex))return 0;const base=run.loads[t.ex.id]??0;if(!t.approach)return base;if(t.factor===0)return barKg;return Math.max(barKg,Math.round(base*t.factor/2)*2);}
 export function completeExecution(run:Run,now=Date.now(),barKg=20,auto=false):Run {
  if(run.phase!=='EXECUTION'||run.pausedAt!==null)return run;
@@ -151,7 +150,7 @@ export function rowFor(run:Run,t:Task,barKg:number,auto:boolean,filler=false,now
  return {commentaire:!filler&&!guided?run.setNote:undefined,angle_deg:t.ex.id==='squat_isometrique'?run.angle_deg:undefined,uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),heure_debut:new Date(start).toISOString(),seance_id:run.model.id,exercice_id:t.ex.id,index_serie:t.index,cote:t.side,charge_kg:guided?0:taskLoad(run,t,barKg),charge_applicable:!guided&&hasWeight(t.ex),charge_libelle:!guided&&hasLoad(t.ex)?run.bands[t.ex.id]??'':'',mesure:measure,distance_m:measure==='distance'?(filler?distanceFor(t.ex,t.entry):run.distance_m??distanceFor(t.ex,t.entry)):undefined,reps_prevues:measure==='reps'?t.reps:0,reps_faites:measure==='reps'?(filler?run.filler_reps??t.reps:run.reps):0,duree_s:measure==='duration'&&!filler?(run.duration_s??elapsed):elapsed,rir_ressenti:measure==='reps'&&!guided&&!t.approach?run.rir:null,approche:t.approach,valide_auto:auto,intercalaire:filler,echauffement:!!t.warmup};
 }
 export function getRecords(rows:Row[],history:Session[]){return [...new Set(rows.filter(r=>!r.approche&&r.charge_kg>0).map(r=>r.exercice_id))].flatMap(id=>{const current=rows.filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const old=history.filter(s=>s.statut==='terminee').flatMap(s=>s.series).filter(r=>r.exercice_id===id&&!r.approche&&!r.intercalaire&&!r.echauffement);const max=Math.max(...current.map(r=>r.charge_kg)),prev=Math.max(0,...old.map(r=>r.charge_kg));return max>prev?[{id,old:prev,value:max}]:[]})}
-export function finishRun(run:Run,history:Session[],status:Session['statut']='terminee'):Session{const now=run.finishedAt??Date.now();return {seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),seance_id:run.model.id,seance_version:run.model.version,nom:run.model.nom,heure_debut:new Date(run.startedAt).toISOString(),heure_fin:new Date(now).toISOString(),duree_min:Math.round((now-run.startedAt)/6000)/10,exercices_prevus:new Set(run.tasks.filter(t=>t.kind==='set'&&!t.warmup).map(t=>t.ex.id)).size,exercices_faits:new Set(run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).map(r=>r.exercice_id)).size,volume_kg:run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).reduce((n,r)=>n+r.charge_kg*r.reps_faites,0),rpe_global:run.rpe,ressenti:run.note,records:getRecords(run.rows,history).map(x=>x.id),statut:status,series:run.rows,retours:Object.entries(run.retours).map(([id,retour])=>({uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),exercice_id:id,retour,saisi_en:'bilan_seance'}))}}
+export function finishRun(run:Run,history:Session[],status:Session['statut']='terminee'):Session{const now=run.finishedAt??Date.now();if(run.phase==='BILAN')status='terminee';return {seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),seance_id:run.model.id,seance_version:run.model.version,nom:run.model.nom,heure_debut:new Date(run.startedAt).toISOString(),heure_fin:new Date(now).toISOString(),duree_min:Math.round((now-run.startedAt)/6000)/10,exercices_prevus:new Set(run.tasks.filter(t=>t.kind==='set'&&!t.warmup).map(t=>t.ex.id)).size,exercices_faits:new Set(run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).map(r=>r.exercice_id)).size,volume_kg:run.rows.filter(r=>!r.approche&&!r.intercalaire&&!r.echauffement).reduce((n,r)=>n+r.charge_kg*r.reps_faites,0),rpe_global:run.rpe,ressenti:run.note,records:getRecords(run.rows,history).map(x=>x.id),statut:status,series:run.rows,retours:Object.entries(run.retours).map(([id,retour])=>({uuid:uid(),seance_uuid:run.uuid,date:localDate(new Date(run.startedAt)),exercice_id:id,retour,saisi_en:'bilan_seance'}))}}
 
 // Skip remaining sets/sides in this block, along with their rests and review.
 export function skipExercise(run:Run,now=Date.now()):Run{
@@ -165,36 +164,44 @@ export function skipFiller(run:Run):Run{
 }
 
 // Move directly into the next set; only an unknown load still needs user input.
-export function advanceWorkout(run:Run,now=Date.now()):Run {
+export function advanceWorkout(run:Run,now=Date.now(),automatic=false):Run {
  let cursor=run.cursor+1;
  while(run.tasks[cursor]?.kind==='review')cursor++;
- return startExecution(enter(run,cursor,now),now);
+ const next=enter(run,cursor,now);
+ if(automatic&&(run.transitionSeconds??5)>0&&['COUNTDOWN','READY'].includes(next.phase))return {...next,phase:'COUNTDOWN',deadline:now+(run.transitionSeconds??5)*1000};
+ return startExecution(next,now);
 }
-export function tickWorkout(run:Run,barKg:number,now=Date.now()):Run {
+export function tickWorkout(run:Run,barKg:number,now=Date.now(),autoFillers=false):Run {
  if(run.pausedAt!==null)return run;
  if(run.phase==='REST'){
   let next=run;
-  // Complete only timed inserts that actually ended within the rest window.
+  // Manual by default: neither an activity timer nor the rest timer confirms a filler.
+  if(!autoFillers&&next.tasks[next.cursor]?.fillers?.[next.fillerIndex])return next;
+  // In automatic mode, record every remaining filler before leaving the rest.
   while(next.fillerDeadline&&next.fillerDeadline<=now&&next.fillerDeadline<=(run.deadline??Infinity)){
    next=completeFiller(next,barKg,true,next.fillerDeadline);
   }
-  return run.deadline!==null&&now>=run.deadline?advanceWorkout(next,now):next;
+  if(run.deadline!==null&&now>=run.deadline){
+   while(next.tasks[next.cursor]?.fillers?.[next.fillerIndex])next=completeFiller(next,barKg,true,Math.max(next.fillerAt,run.deadline));
+   return advanceWorkout(next,now,true);
+  }
+  return next;
  }
  if(run.phase==='VALIDATION'&&run.restDeadline!==undefined&&now>=run.restDeadline){
-  return advanceWorkout(validateExecution(run,barKg,true,now),now);
+  return tickWorkout(validateExecution(run,barKg,true,now),barKg,now,autoFillers);
  }
  if(run.deadline===null||now<run.deadline)return run;
  if(run.phase==='COUNTDOWN')return startExecution(run,now);
  if(run.phase==='EXECUTION')return completeExecution(run,now,barKg,true);
  if(run.phase==='VALIDATION'&&run.auto)return validateExecution(run,barKg,true,now);
- if(run.phase==='REVIEW'&&run.auto)return advanceWorkout(run,now);
+ if(run.phase==='REVIEW'&&run.auto)return advanceWorkout(run,now,true);
  return run;
 }
 export function restartWorkout(run:Run,now=Date.now()):Run {
  const active=run.pausedAt===null?run:togglePause(run,now);
  if(active.phase==='REST')return restartTimer(active,active.tasks[active.cursor].fillers?.[active.fillerIndex]?'activity':'rest',now);
  if(active.phase==='EXECUTION')return {...active,phaseAt:now,executionAt:now,deadline:active.tasks[active.cursor].seconds?now+active.tasks[active.cursor].seconds*1000:null};
- if(active.phase==='COUNTDOWN')return {...active,phaseAt:now,deadline:now+5000};
+ if(active.phase==='COUNTDOWN')return {...active,phaseAt:now,deadline:now+(active.transitionSeconds??5)*1000};
  if(active.phase==='VALIDATION'||active.phase==='REVIEW')return {...active,auto:true,phaseAt:now,deadline:now+AUTO_VALIDATE_SECONDS*1000};
  return active;
 }

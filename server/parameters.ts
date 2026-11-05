@@ -36,7 +36,7 @@ export const entrySchema=z.object({
  jours:days.nullable().optional().describe('0 dimanche à 6 samedi ; null = tous les jours, [] = aucun jour. Filtre propre à cette entrée.'),
  angle_deg:z.number().min(0).max(180).nullable().optional().describe('Angle en degrés ; affichage actuellement réservé au squat isométrique.'),
  durees:z.array(positiveDuration).min(1).max(100).nullable().optional().describe('Une durée MM:SS par série ; null efface. Exclusif avec cycle et steps.'),
- steps:z.array(z.object({exercice_id:id,duree:positiveDuration,consigne:text.describe('Consigne de cette étape.')}).strict()).min(1).max(100).nullable().optional().describe('Étapes chronométrées d’échauffement ; null efface. Une seule séquence, sans séries d’approche ni intercalaire.'),
+ steps:z.array(z.object({exercice_id:id,duree:positiveDuration,consigne:text.describe('Consigne de cette étape.'),cote:z.enum(['gauche','droite','bilateral']).optional().describe('Côté de cette étape ; bilatéral par défaut.')}).strict()).min(1).max(100).nullable().optional().describe('Étapes chronométrées d’échauffement ; null efface. Une seule séquence, sans séries d’approche ni intercalaire.'),
  cycle:z.object({count:z.number().int().min(1).max(100).describe('Nombre de cycles.'),work:positiveDuration.describe('Contraction MM:SS.'),rest:duration.describe('Relâchement MM:SS.')}).strict().nullable().optional().describe('Cycles contraction/relâchement ; null efface. Durée par série calculée.'),
  pause:z.object({approche:z.boolean().describe('Pause après une série d’approche si true, de travail sinon.'),index:z.number().int().min(1).max(100).describe('Numéro de série à partir de 1.')}).strict().nullable().optional().describe('Placement précis dans la pause d’un seul parent, avec pauses_explicites=true ; null efface.')
 }).strict();
@@ -55,7 +55,7 @@ export const fieldMap={
  exercise:{id:'id',nom:'nom',categorie:'categorie',type_charge:'type_charge',unilateral:'unilateral',increment_kg:'increment_kg',consigne:'consigne',vigilance:'vigilance',objectif:'objectif',media:'media',reference_kg:'reference_kg',intercalaire:'intercalaire',audio_nom:'audio_nom',statut:'statut'},
  session:{id:'id',icon_id:'icon_id',nom:'nom',sous_titre:'sous_titre',jours:'jours',duree_estimee:'duree_min',pauses_explicites:'pauses_explicites',archive:'archive',actif_du:'actif_du',actif_au:'actif_au',exercices:'exercices'},
  entry:{exercice_id:'exercice_id',ordre:'ordre',series:'series',reps_min:'reps_min',reps_max:'reps_max',mesure:'mesure',duree:'duree_s',repos:'repos_s',repos_approche:'approche_repos_s',distance_m:'distance_m',approche:'approche',intercalaire_de:'intercalaire_de',note:'note',format:'format',jours:'jours',angle_deg:'angle_deg',durees:'durees_s',steps:'steps',cycle:'cycle',pause:'pause'},
- step:{exercice_id:'exercice_id',duree:'duree_s',consigne:'consigne'},cycle:{count:'count',work:'work_s',rest:'rest_s'},pause:{approche:'approche',index:'index'}
+ step:{exercice_id:'exercice_id',duree:'duree_s',consigne:'consigne',cote:'cote'},cycle:{count:'count',work:'work_s',rest:'rest_s'},pause:{approche:'approche',index:'index'}
 };
 export const managedFields={exercise:{reference_at:'Date technique de la charge de référence, millisecondes Unix ; automatique.',revision:'Révision technique automatique.'},session:{version:'Version interne automatique, non présentée à l’utilisateur.'},entry:{revision:'Révision technique automatique.',duree_totale_s:'Total calculé pour la présentation, jamais une consigne de durée.',repos_total_s:'Total calculé des repos pour la présentation.'}};
 export function parameterReference(){return {version:'1.3.0',workout_icons:workoutIcons,duration_format:'MM:SS',exercise:z.toJSONSchema(exerciseSchema,{io:'input'}),session:z.toJSONSchema(sessionSchema,{io:'input'}),storage_mapping:fieldMap,read_only:managedFields,semantics:['Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.','Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.','Les champs techniques sont consultables dans les résultats bruts ; ils ne sont pas acceptés en écriture. Les entraînements réalisés et leurs mesures ne font pas partie de la programmation.']}}
@@ -69,7 +69,7 @@ export function editableSession(m:Json){
  x.duree=fmt(e.duree_s??0);x.repos=fmt(e.repos_s??0);
  if(e.approche_repos_s!==undefined)x.repos_approche=fmt(e.approche_repos_s);
  if(e.durees_s)x.durees=e.durees_s.map(fmt);
- if(e.steps)x.steps=e.steps.map((s:Json)=>({exercice_id:s.exercice_id,duree:fmt(s.duree_s),consigne:s.consigne}));
+ if(e.steps)x.steps=e.steps.map((s:Json)=>({exercice_id:s.exercice_id,duree:fmt(s.duree_s),consigne:s.consigne,...(s.cote?{cote:s.cote}:{})}));
  if(e.cycle)x.cycle={count:e.cycle.count,work:fmt(e.cycle.work_s),rest:fmt(e.cycle.rest_s)};
  if(x.mesure==='distance'&&x.distance_m===undefined)x.distance_m=e.exercice_id==='marche_escargot'?2:0;
  return x});return out;
@@ -79,7 +79,7 @@ export function sessionModel(input:z.output<typeof sessionSchema>,previous?:Json
  m.exercices=input.exercices.map((e,i)=>{const order=e.ordre??i+1;const old=previous?.exercices.find((x:Json)=>x.ordre===order&&x.exercice_id===e.exercice_id);const out:Json={...old};
  for(const [key,stored] of Object.entries(fieldMap.entry)){const v=(e as Json)[key];if(v!==undefined){if(v===null)delete out[stored];else out[stored]=v}}
  out.ordre=order;out.format??='';out.revision=(old?.revision??0)+1;delete out.duree_totale_s;delete out.repos_total_s;
- if(e.steps)out.steps=e.steps.map(s=>({exercice_id:s.exercice_id,duree_s:s.duree,consigne:s.consigne}));
+ if(e.steps)out.steps=e.steps.map(s=>({exercice_id:s.exercice_id,duree_s:s.duree,consigne:s.consigne,...(s.cote?{cote:s.cote}:{})}));
  if(e.cycle)out.cycle={count:e.cycle.count,work_s:e.cycle.work,rest_s:e.cycle.rest};
  if(out.steps?.length)out.duree_s=out.steps.reduce((n:number,s:Json)=>n+s.duree_s,0);
  if(out.cycle)out.duree_s=out.cycle.count*(out.cycle.work_s+out.cycle.rest_s);

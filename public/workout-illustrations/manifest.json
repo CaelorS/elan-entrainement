@@ -1,0 +1,182 @@
+[
+  {
+    "category": "Corps entier",
+    "variant": "A",
+    "file": "corps-entier-a.png"
+  },
+  {
+    "category": "Corps entier",
+    "variant": "B",
+    "file": "corps-entier-b.png"
+  },
+  {
+    "category": "Corps entier",
+    "variant": "C",
+    "file": "corps-entier-c.png"
+  },
+  {
+    "category": "Haut du corps",
+    "variant": "A",
+    "file": "haut-du-corps-a.png"
+  },
+  {
+    "category": "Haut du corps",
+    "variant": "B",
+    "file": "haut-du-corps-b.png"
+  },
+  {
+    "category": "Haut du corps",
+    "variant": "C",
+    "file": "haut-du-corps-c.png"
+  },
+  {
+    "category": "Bas du corps",
+    "variant": "A",
+    "file": "bas-du-corps-a.png"
+  },
+  {
+    "category": "Bas du corps",
+    "variant": "B",
+    "file": "bas-du-corps-b.png"
+  },
+  {
+    "category": "Bas du corps",
+    "variant": "C",
+    "file": "bas-du-corps-c.png"
+  },
+  {
+    "category": "Poussée",
+    "variant": "A",
+    "file": "poussee-a.png"
+  },
+  {
+    "category": "Poussée",
+    "variant": "B",
+    "file": "poussee-b.png"
+  },
+  {
+    "category": "Poussée",
+    "variant": "C",
+    "file": "poussee-c.png"
+  },
+  {
+    "category": "Tirage",
+    "variant": "A",
+    "file": "tirage-a.png"
+  },
+  {
+    "category": "Tirage",
+    "variant": "B",
+    "file": "tirage-b.png"
+  },
+  {
+    "category": "Tirage",
+    "variant": "C",
+    "file": "tirage-c.png"
+  },
+  {
+    "category": "Abdos / gainage",
+    "variant": "A",
+    "file": "gainage-a.png"
+  },
+  {
+    "category": "Abdos / gainage",
+    "variant": "B",
+    "file": "gainage-b.png"
+  },
+  {
+    "category": "Abdos / gainage",
+    "variant": "C",
+    "file": "gainage-c.png"
+  },
+  {
+    "category": "Mobilité",
+    "variant": "A",
+    "file": "mobilite-a.png"
+  },
+  {
+    "category": "Mobilité",
+    "variant": "B",
+    "file": "mobilite-b.png"
+  },
+  {
+    "category": "Mobilité",
+    "variant": "C",
+    "file": "mobilite-c.png"
+  },
+  {
+    "category": "Étirements",
+    "variant": "A",
+    "file": "etirements-a.png"
+  },
+  {
+    "category": "Étirements",
+    "variant": "B",
+    "file": "etirements-b.png"
+  },
+  {
+    "category": "Étirements",
+    "variant": "C",
+    "file": "etirements-c.png"
+  },
+  {
+    "category": "Routine matinale",
+    "variant": "A",
+    "file": "routine-matinale-a.png"
+  },
+  {
+    "category": "Routine matinale",
+    "variant": "B",
+    "file": "routine-matinale-b.png"
+  },
+  {
+    "category": "Routine matinale",
+    "variant": "C",
+    "file": "routine-matinale-c.png"
+  },
+  {
+    "category": "Triathlon",
+    "variant": "A",
+    "file": "triathlon-a.png"
+  },
+  {
+    "category": "Triathlon",
+    "variant": "B",
+    "file": "triathlon-b.png"
+  },
+  {
+    "category": "Triathlon",
+    "variant": "C",
+    "file": "triathlon-c.png"
+  },
+  {
+    "category": "Cross-training",
+    "variant": "A",
+    "file": "cross-training-a.png"
+  },
+  {
+    "category": "Cross-training",
+    "variant": "B",
+    "file": "cross-training-b.png"
+  },
+  {
+    "category": "Cross-training",
+    "variant": "C",
+    "file": "cross-training-c.png"
+  },
+  {
+    "category": "Équilibre",
+    "variant": "A",
+    "file": "equilibre-a.png"
+  },
+  {
+    "category": "Équilibre",
+    "variant": "B",
+    "file": "equilibre-b.png"
+  },
+  {
+    "category": "Équilibre",
+    "variant": "C",
+    "file": "equilibre-c.png"
+  }
+]

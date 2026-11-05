@@ -9,6 +9,6 @@ export function mergeSyncedData(current:LocalData,snapshot:LocalData,remote:Loca
  current.sessions.filter(s=>newer.includes(s.seance_uuid)).forEach(s=>sessions.set(s.seance_uuid,s));
  const runs=new Map(remote.runs.map(r=>[r.uuid,r]));
  current.runs.filter(r=>newer.includes(r.uuid)).forEach(r=>runs.set(r.uuid,r));
- return {...current,deletedSessions,sessions:[...sessions.values()].filter(s=>!deletedSessions.includes(s.seance_uuid)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut)),runs:[...runs.values()],
+ return {...current,running:current.running&&sessions.has(current.running.uuid)?null:current.running,deletedSessions,sessions:[...sessions.values()].filter(s=>!deletedSessions.includes(s.seance_uuid)).sort((a,b)=>b.heure_debut.localeCompare(a.heure_debut)),runs:[...runs.values()],
   program:newer.includes('program')?current.program:remote.program,programRevision:remote.programRevision,pending:newer,lastSync:remote.lastSync};
 }

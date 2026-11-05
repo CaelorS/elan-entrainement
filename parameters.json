@@ -511,6 +511,15 @@
                         "type": "string",
                         "maxLength": 5000,
                         "description": "Consigne de cette étape."
+                      },
+                      "cote": {
+                        "description": "Côté de cette étape ; bilatéral par défaut.",
+                        "type": "string",
+                        "enum": [
+                          "gauche",
+                          "droite",
+                          "bilateral"
+                        ]
                       }
                     },
                     "required": [
@@ -662,7 +671,8 @@
     "step": {
       "exercice_id": "exercice_id",
       "duree": "duree_s",
-      "consigne": "consigne"
+      "consigne": "consigne",
+      "cote": "cote"
     },
     "cycle": {
       "count": "count",

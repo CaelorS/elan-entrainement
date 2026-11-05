@@ -95,3 +95,31 @@ test('discard leaves history intact; deletion survives persistence and an in-fli
  const store=new TrainingStore('deletion-test');await store.persist(merged);assert.deepEqual((await store.load()).deletedSessions,['delete']);
  const synced=mergeSyncedData(merged,merged,{...merged,pending:[],lastSync:100});assert.deepEqual(synced.pending,[]);assert.deepEqual(synced.deletedSessions,['delete']);
 });
+
+test('completed session journal recovers after an older snapshot is persisted and isolates accounts',async()=>{
+ const entries=new Map<string,string>();Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>entries.get(k)??null,setItem:(k:string,v:string)=>entries.set(k,v)}});
+ try{const store=new TrainingStore('journal-user');const before=blank();const finished={seance_uuid:'done',series:[],statut:'terminee',rpe_global:7} as any;
+ before.running={uuid:'done',phase:'BILAN'} as any;
+ await store.persistCompleted({...before,running:null,sessions:[finished],pending:['done']},finished);
+ await store.persist(before);
+ const loaded=await new TrainingStore('journal-user').load();assert.equal(loaded.running,null);assert.equal(loaded.sessions[0].rpe_global,7);assert.ok(loaded.pending.includes('done'));assert.equal((await new TrainingStore('other-user').load()).sessions.length,0);
+ }finally{delete (globalThis as any).localStorage}
+});
+test('sync clears a stale running copy when that same workout is already in history',()=>{
+ const local=blank();local.running={uuid:'finished'} as any;const remote={...local,sessions:[{seance_uuid:'finished',heure_debut:'2026-11-02'} as any]};assert.equal(mergeSyncedData(local,local,remote).running,null);
+});
+
+
+test('completion journal keeps later edits and acknowledges JSONB key order without losing concurrent edits',async()=>{
+ const entries=new Map<string,string>();Object.defineProperty(globalThis,'localStorage',{configurable:true,value:{getItem:(k:string)=>entries.get(k)??null,setItem:(k:string,v:string)=>entries.set(k,v),removeItem:(k:string)=>entries.delete(k)}});
+ try{
+  let remoteSession:any,respond:()=>void=()=>{};
+  const client={auth:{getSession:async()=>({data:{session:{user:{id:'journal-edit'}}}})},rpc:()=>({abortSignal:async()=>{await new Promise<void>(resolve=>{respond=resolve});return {error:null,data:{program:null,revision:0,sessions:[remoteSession],runs:[]}}}})};
+  const store=new TrainingStore('journal-edit',client as any),finished={seance_uuid:'done',series:[],statut:'terminee',rpe_global:7} as any;
+  let data={...blank(),sessions:[finished],pending:['done']};await store.persistCompleted(data,finished);
+  data={...data,sessions:[{...finished,rpe_global:8}]};await store.persist(data);assert.equal((await store.load()).sessions[0].rpe_global,8);
+  remoteSession={rpe_global:8,statut:'terminee',series:[],seance_uuid:'done'};const first=store.sync(data);await new Promise(resolve=>setTimeout(resolve,0));
+  const newer={...data,sessions:[{...finished,rpe_global:9}]};await store.persist(newer);respond();await first;assert.equal(JSON.parse(entries.get('elan-completed:journal-edit')!)[0].rpe_global,9);
+  remoteSession={rpe_global:9,statut:'terminee',series:[],seance_uuid:'done'};const second=store.sync(newer);await new Promise(resolve=>setTimeout(resolve,0));respond();await second;assert.deepEqual(JSON.parse(entries.get('elan-completed:journal-edit')!),[]);
+ }finally{delete (globalThis as any).localStorage}
+});
