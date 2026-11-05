@@ -220,3 +220,6 @@ input[data-editable-value]::placeholder{color:color-mix(in srgb,currentColor 55%
 .workout-main {overflow-anchor:none}
 
 html:has(.workout-main) {overflow-anchor:none}
+
+/* Programmatic focus announces the new screen without framing its title. */
+.workout-main h1[tabindex="-1"]:focus{outline:none}
