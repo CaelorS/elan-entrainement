@@ -10,6 +10,6 @@ Les quatre mouvements dont la variante reste imprécise sont marqués `interpret
 
 `catalogue.json` associe les mouvements aux PNG. L’application utilise le choix Homme, Femme ou Mixte du compte pour afficher la moitié correspondante. Un média personnel déjà renseigné sur l’exercice conserve la priorité.
 
-Les planches sont chargées à l’affichage, sans téléchargement du catalogue complet au démarrage. La galerie `index.html` permet de rechercher, comparer et télécharger les PNG.
+Les planches sont chargées à l’affichage, sans téléchargement du catalogue complet au démarrage. La galerie `../workout-illustrations/exercices-bd.html` permet de rechercher, comparer et télécharger les PNG.
 
 Création avec ImageGen à partir de la référence graphique choisie par l’utilisateur, puis contrôle visuel et corrections des poses. Les prompts et les essais sont conservés dans les fichiers de travail du projet.
