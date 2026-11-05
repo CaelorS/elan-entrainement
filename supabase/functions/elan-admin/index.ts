@@ -17,7 +17,8 @@ Deno.serve(async(req:Request)=>{
   if(Number(req.headers.get('content-length')||0)>4096)return json({error:'Requête trop longue'},413);
   let raw:string;try{raw=new TextDecoder().decode(await boundedBody(req,4096))}catch{return json({error:'Requête trop longue'},413)}
   const body=JSON.parse(raw);if(body.action!=='invite'||typeof body.email!=='string'||body.email.length>254||!/^\S+@\S+\.\S+$/.test(body.email))return json({error:'Adresse e-mail invalide'},400);
-  const {error:inviteError}=await service.auth.admin.inviteUserByEmail(body.email.trim(),{redirectTo:appUrl});
+  const gender=body.gender??'unspecified';if(!['male','female','other','unspecified'].includes(gender))return json({error:'Genre invalide'},400);
+  const {error:inviteError}=await service.auth.admin.inviteUserByEmail(body.email.trim(),{redirectTo:appUrl,data:{gender}});
   if(inviteError)return json({error:'Invitation impossible. Vérifie l’adresse, les invitations existantes et le service e-mail.'},400);
   await service.from('elan_access_audit').insert({actor:user.user.id,action:'invite',target:body.email.trim()});
   return json({message:'Invitation envoyée.'});

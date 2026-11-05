@@ -9,7 +9,7 @@ const template=await readFile(new URL('../public/sw.js',import.meta.url),'utf8')
 // Cache an immutable HTML URL together with the assets from that exact build.
 const version=hash.digest('hex').slice(0,16),shell='app-shell-'+version+'.html';
 await writeFile(new URL(shell,root),await readFile(new URL('index.html',root)));
-const assets=[base+shell,...files.filter(f=>f!=='index.html'&&!f.startsWith('workout-illustrations/')).map(f=>base+f)];
+const assets=[base+shell,...files.filter(f=>f!=='index.html'&&!f.startsWith('workout-illustrations/')&&!f.startsWith('exercise-illustrations-bd/')).map(f=>base+f)];
 await writeFile(new URL('sw.js',root),template.replace("const CACHE='elan-static-dev';",`const CACHE=${JSON.stringify('elan-static-'+base+'-'+version)};`).replace("const SHELL='';",`const SHELL=${JSON.stringify(base+shell)};`).replace('const CORE=[];',`const CORE=${JSON.stringify(assets)};`));
 await writeFile(new URL('version.json',root),JSON.stringify({version,commit:process.env.GITHUB_SHA??null}));
 await writeFile(new URL('.nojekyll',root),'');console.log(`PWA: ${files.length} assets, release ${version}`);

@@ -223,3 +223,18 @@ html:has(.workout-main) {overflow-anchor:none}
 
 /* Programmatic focus announces the new screen without framing its title. */
 .workout-main h1[tabindex="-1"]:focus{outline:none}
+
+/* Paired PNG boards: each half is a full illustration; no extra download per gender. */
+.exercise-illustration{margin:1.2rem 0;display:grid;justify-items:center;gap:.5rem}
+.exercise-illustration-open{display:block;padding:0;border:0;background:transparent;border-radius:18px;overflow:hidden;max-width:100%;cursor:zoom-in}
+.exercise-illustration-crop{display:block;position:relative;overflow:hidden;width:min(100%,300px);aspect-ratio:1;background:#f8f1e7;border-radius:18px}
+.exercise-illustration-open .exercise-illustration-crop{width:300px;max-width:100%}
+.exercise-illustration-crop img,.exercise-help .exercise-illustration-crop img{display:block;width:200%;max-width:none;height:100%;object-fit:fill;border-radius:0;margin:0}
+.exercise-illustration-crop.female img{transform:translateX(-50%)}
+.exercise-illustration-dialog{display:grid;justify-items:center;gap:1rem}
+.exercise-illustration-crop.enlarged{width:min(100%,560px)}
+.exercise-illustration figcaption{font-size:.85rem;color:var(--muted);text-align:center}
+.account-preferences{margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.account-preferences .field-label{margin-top:1rem}
+
+.illustration-catalogue-link{display:flex;justify-content:center;text-align:center;text-decoration:none;margin-top:1rem}
