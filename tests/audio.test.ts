@@ -16,7 +16,7 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
  const navDescriptor=Object.getOwnPropertyDescriptor(globalThis,'navigator'),session={type:'auto'};Object.defineProperty(globalThis,'navigator',{value:{audioSession:session},configurable:true});
  Object.defineProperty(globalThis,'AudioContext',{value:Context,configurable:true});Date.now=()=>1000;
  try{
-  assert.equal(await unlockAudio(),true);assert.equal(session.type,'ambient');scheduleCountdown(11000,'rest','beeps');
+  assert.equal(await unlockAudio(),true);assert.equal(session.type,'playback');scheduleCountdown(11000,'rest','beeps');
   assert.deepEqual(tones.map(t=>t.starts[0]),[17,18,19,20]);
   assert.deepEqual(tones.map(t=>t.frequency.value),[750,750,750,1200]);assert.ok(tones[3].stops[0]-tones[3].starts[0]>=.5,'final beep is longer than the three short cues');
   stopSounds();assert.ok(tones.every(t=>t.stops.includes(-1)));
@@ -24,6 +24,6 @@ test('rest audio schedules 3, 2, 1 and a distinct start tone; pause cancels pend
   const count=tones.length;scheduleCountdown(11000,'rest','silent');assert.equal(tones.length,count);
   transitionSound('beeps');assert.equal(tones.at(-1)!.starts[0],10);
   stopSounds(true);assert.ok(!tones.at(-1)!.stops.includes(-1),'phase transition must not cut off the finish tone');
- assert.equal(await testAudio(),true);assert.deepEqual(tones.slice(-2).map(t=>t.frequency.value),[750,1200]);
- }finally{closeAudio();assert.equal(session.type,'ambient');if(navDescriptor)Object.defineProperty(globalThis,'navigator',navDescriptor);else delete (globalThis as any).navigator;Date.now=oldNow;if(descriptor)Object.defineProperty(globalThis,'AudioContext',descriptor);else delete (globalThis as any).AudioContext}
+ await unlockAudio(true);assert.equal(session.type,'ambient');assert.equal(await testAudio(),true);assert.equal(session.type,'playback');assert.deepEqual(tones.slice(-2).map(t=>t.frequency.value),[750,1200]);
+ }finally{closeAudio();assert.equal(session.type,'auto');if(navDescriptor)Object.defineProperty(globalThis,'navigator',navDescriptor);else delete (globalThis as any).navigator;Date.now=oldNow;if(descriptor)Object.defineProperty(globalThis,'AudioContext',descriptor);else delete (globalThis as any).AudioContext}
 });

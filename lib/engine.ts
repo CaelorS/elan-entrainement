@@ -51,7 +51,7 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
    const carrier=active.some(f=>f.intercalaire_de.includes(e.ordre));
    if(model.pauses_explicites||!finalInBlock||carrier){const rest={...task,id:uid(),kind:'rest' as const,seconds:e.repos_s,fillers:[]};out.push(rest);slots.push(rest)}
   });
-  if(ex.categorie==='force'&&blockIndex<main.length-1)out.push({id:uid(),kind:'review',ex,entry:e,index:e.series,side:'bilateral',approach:false,factor:1,reps:0,seconds:AUTO_VALIDATE_SECONDS});
+  if(ex.categorie==='force'&&(measureFor(ex,e)!=='duration'||hasLoad(ex))&&blockIndex<main.length-1)out.push({id:uid(),kind:'review',ex,entry:e,index:e.series,side:'bilateral',approach:false,factor:1,reps:0,seconds:AUTO_VALIDATE_SECONDS});
  });
  if(!scheduleFillers)return out;
  if(model.pauses_explicites){
@@ -122,7 +122,7 @@ export function restartTimer(run:Run,target:'activity'|'rest'='activity',now=Dat
  return run;
 }
 export function nextSet(run:Run){return run.tasks.slice(run.cursor+1).find(t=>t.kind==='set')}
-export function isLastSet(run:Run){const task=run.tasks[run.cursor];return task?.kind==='set'&&!task.approach&&!isGuided(task)&&!run.tasks.slice(run.cursor+1).some(t=>t.kind==='set'&&t.ex.id===task.ex.id&&!t.approach)}
+export function isLastSet(run:Run){const task=run.tasks[run.cursor];return task?.kind==='set'&&task.entry.series>1&&!task.approach&&!isGuided(task)&&!run.tasks.slice(run.cursor+1).some(t=>t.kind==='set'&&t.ex.id===task.ex.id&&!t.approach)}
 export function makeRun(model:Model,program:Program,history:Session[],reduced:boolean,transitionSeconds=5):Run{const now=Date.now();if(model.id==='bloc_matin'&&![2,5].includes(new Date(now).getDay())){const yesterday=new Date(now);yesterday.setDate(yesterday.getDate()-1);const moved=new Set(history.filter(s=>s.statut==='terminee'&&s.date===localDate(yesterday)).flatMap(s=>s.series.filter(r=>r.intercalaire).map(r=>r.exercice_id)));model={...model,exercices:model.exercices.filter(e=>!moved.has(e.exercice_id))}}const tasks=compile(model,program,reduced);const suggestions:Run['suggestions']={};const loads:Run['loads']={};const bands:Run['bands']={};for(const t of tasks){if(!hasLoad(t.ex)||suggestions[t.ex.id])continue;suggestions[t.ex.id]=suggest(t.ex,t.entry,model.id,history);if(suggestions[t.ex.id].charge!==null)loads[t.ex.id]=suggestions[t.ex.id].charge!;const previous=history.flatMap(s=>s.series).filter(r=>r.exercice_id===t.ex.id&&r.charge_libelle).at(-1);if(previous)bands[t.ex.id]=previous.charge_libelle;}
  return enter({transitionSeconds:Math.max(0,Math.min(60,Math.round(transitionSeconds))),uuid:uid(),model,tasks,cursor:0,phase:'COUNTDOWN',startedAt:now,phaseAt:now,deadline:null,pausedAt:null,rows:[],retours:{},loads,bands,reps:0,rir:null,auto:true,fillerIndex:0,fillerAt:now,fillerDeadline:null,fillerDone:[],suggestions,savedAt:now,rpe:null,note:'',reduced},0,now)}
 export function taskLoad(run:Run,t:Task,barKg:number){if(!hasWeight(t.ex))return 0;const base=run.loads[t.ex.id]??0;if(!t.approach)return base;if(t.factor===0)return barKg;return Math.max(barKg,Math.round(base*t.factor/2)*2);}
@@ -131,7 +131,9 @@ export function completeExecution(run:Run,now=Date.now(),barKg=20,auto=false):Ru
  const task=run.tasks[run.cursor],end=run.deadline?Math.min(now,run.deadline):now;
  const restCursor=run.tasks[run.cursor+1]?.kind==='rest'?run.cursor+1:undefined;
  const done={...run,phase:'VALIDATION' as const,phaseAt:now,executionEnd:end,duration_s:Math.max(0,Math.round((end-(run.executionAt??run.phaseAt))/1000)),deadline:now+AUTO_VALIDATE_SECONDS*1000,restCursor,restDeadline:restCursor===undefined?undefined:end+run.tasks[restCursor].seconds*1000,auto:true};
- if(isGuided(task))return enter({...done,rows:[...done.rows,rowFor(done,task,barKg,auto,false,now)]},run.cursor+1,now);
+ // Timed bodyweight efforts already have their actual duration. Keep it editable
+ // in the recap, without spending part of the recovery on a redundant form.
+ if(isGuided(task)||measureFor(task.ex,task.entry)==='duration'&&!hasLoad(task.ex))return enter({...done,rows:[...done.rows,rowFor(done,task,barKg,auto,false,now)]},run.cursor+1,now);
  return done;
 }
 export function validateExecution(run:Run,barKg:number,auto=false,now=Date.now()):Run {

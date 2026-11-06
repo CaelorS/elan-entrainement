@@ -239,3 +239,35 @@ test('warm-up steps preserve explicit left and right sides in the log',()=>{
  let run=makeRun(fixture,p,[],false,0);assert.deepEqual(run.tasks.map(t=>[t.side,t.seconds]),[['gauche',30],['droite',30]]);
  run=tickWorkout(run,20,run.deadline!);run=tickWorkout(run,20,run.deadline!);assert.equal(run.phase,'BILAN');assert.deepEqual(run.rows.map(r=>[r.cote,r.duree_s]),[['gauche',30],['droite',30]]);
 });
+
+test('duration-only strength work records directly and enters the full recovery',()=>{
+ const ex={...squat,id:'reverse_lunge',nom:'Fentes arrière',type_charge:'poids_corps',unilateral:false};
+ const timed={...entry,exercice_id:ex.id,ordre:1,approche:false,series:2,mesure:'duration' as const,duree_s:35,repos_s:10};
+ const program={...p,catalogue:[...p.catalogue,ex]};
+ const modelTimed={...model,exercices:[timed,{...entry,ordre:2,approche:false,series:1}]};
+ let run=makeRun(modelTimed,program,[],false,0);run=startExecution(enter(run,0,1000),1000);
+ const rest=tickWorkout(run,20,36000);
+ assert.equal(rest.phase,'REST');assert.equal(rest.deadline,46000);assert.equal(rest.rows.length,1);
+ assert.equal(rest.rows[0].duree_s,35);assert.equal(rest.rows[0].valide_auto,true);
+ assert.equal(rest.rows[0].charge_applicable,false);
+ assert.equal(tickWorkout(rest,20,45999),rest);
+ assert.equal(tickWorkout(rest,20,46000).phase,'EXECUTION');
+ assert.ok(!run.tasks.some(t=>t.ex.id===ex.id&&t.kind==='review'));
+});
+test('early timed completion preserves actual duration and each side without a validation screen',()=>{
+ const ex={...squat,id:'timed_sides',type_charge:'poids_corps',unilateral:true};
+ const e={...entry,exercice_id:ex.id,approche:false,series:1,mesure:'duration' as const,duree_s:30,repos_s:0};
+ let run=makeRun({...model,exercices:[e]},{...p,catalogue:[...p.catalogue,ex]},[],false,0);
+ run=startExecution(enter(run,0,1000),1000);assert.equal(isLastSet(run),false);
+ run=completeExecution(run,11000,20);assert.equal(run.phase,'EXECUTION');assert.equal(run.tasks[run.cursor].side,'droite');
+ run=completeExecution(run,21000,20);assert.equal(run.phase,'BILAN');
+ assert.deepEqual(run.rows.map(r=>[r.cote,r.duree_s,r.valide_auto]),[['gauche',10,false],['droite',10,false]]);
+ const saved=finishRun(run,[]);assert.equal(saved.statut,'terminee');assert.equal(saved.series.length,2);
+});
+test('weighted timed work keeps validation and a single work set never announces last set',()=>{
+ const e={...entry,approche:false,series:1,mesure:'duration' as const,duree_s:30};
+ let run=makeRun({...model,exercices:[e]},p,[],false,0);assert.equal(isLastSet(run),false);
+ run=startExecution(confirmLoad(run,1000),1000);const done=completeExecution(run,31000,20);
+ assert.equal(done.phase,'VALIDATION');assert.equal(done.duration_s,30);
+ assert.equal(validateExecution(done,20,false,32000).phase,'BILAN');
+});

@@ -118,7 +118,7 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 200,
-        "description": "Nom affiché."
+        "description": "Noms d’exercices concis, idéalement quatre mots maximum. Ne jamais intégrer de poids chiffré dans le nom (ex. « Squat lesté », pas « Squat 4 kg ») ; renseigner la charge dans reference_kg et le matériel dans type_charge. Garder le mouvement et sa variante identifiables."
       },
       "categorie": {
         "default": "force",

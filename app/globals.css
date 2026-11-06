@@ -238,3 +238,46 @@ html:has(.workout-main) {overflow-anchor:none}
 .account-preferences .field-label{margin-top:1rem}
 
 .illustration-catalogue-link{display:flex;justify-content:center;text-align:center;text-decoration:none;margin-top:1rem}
+
+/* Keep the movement, timer and complete illustration above the floating action. */
+.in-workout{--workout-bottom:max(4px,env(safe-area-inset-bottom))}
+.in-workout .topbar{height:44px;gap:12px}
+.in-workout .brand{font-size:26px;letter-spacing:-1.5px}
+.in-workout .top-label{font-size:8px;letter-spacing:.07em}
+.in-workout .workout-top{margin-top:10px;gap:8px}
+.in-workout .workout-progress{margin:9px 0 14px}
+.tunnel .tunnel-heading{margin:0 0 10px}
+.tunnel .workout-title{width:100%;max-width:none;white-space:nowrap;font-size:28px;line-height:1.3;letter-spacing:-.5px}
+.workout-title>span{display:inline-block}
+.tunnel-heading .eyebrow{margin:5px 0 0;font-size:11px}
+.in-workout .execution-target{padding:6px 0;gap:0}
+.in-workout .execution-target strong{font-size:clamp(54px,15vw,76px);line-height:1.05;letter-spacing:-2px}
+.in-workout .execution-target>span{font-size:14px}
+.in-workout .exercise-help{margin:10px auto 16px}
+.in-workout .exercise-illustration{margin:0 0 12px}
+.in-workout .exercise-illustration-open .exercise-illustration-crop{width:var(--workout-art-size, min(300px,40svh))}
+.in-workout .target{font-size:18px;margin:4px 0 8px}
+.in-workout .bar-plates{margin:4px 0 8px;font-size:12px}
+.in-workout .elapsed{margin:4px 0;font-size:14px}
+.in-workout .last-set-notice{padding:8px 12px;margin:8px 0;font-size:13px}
+.in-workout .workout-toolbar{bottom:var(--workout-bottom);height:60px;padding:6px 8px}
+.in-workout .workout-action{bottom:calc(var(--workout-bottom) + 68px);padding-top:0;background:none}
+.in-workout .workout-main{padding-bottom:150px}
+.in-workout .correct-previous{margin:12px 0}
+.ready-dialog .ready-stats{flex-wrap:wrap;gap:8px 20px}
+.ready-dialog .ready-edit{margin:0}
+
+/* Match passage labels, measurements and units, with compact aligned rows. */
+.series-table>div{grid-template-columns:minmax(0,1fr) 124px;padding:8px 0;gap:8px}
+.series-label{font-size:13px;line-height:1.4;gap:3px}
+.series-label strong{font-size:15px}
+.series-values{width:124px;gap:6px}
+.series-values .series-value{grid-template-columns:76px 40px;gap:8px;align-items:center}
+.series-values input,.series-values .duration-field,.series-values .activity-value{width:76px;height:44px;min-height:44px;padding:6px 3px;font:inherit;font-size:13px;line-height:30px}
+.series-values .series-value>span:not(.activity-value),.series-values .held-time{font:inherit;font-size:13px;line-height:1.4}
+.summary-exercises{margin-top:12px}
+.summary-exercises>section{padding:10px 0}
+.summary-exercises h3{font-size:17px;margin-bottom:4px}
+.workout-summary .summary-stats{margin:18px 0;padding:16px 0}
+.workout-summary>h2{margin-top:18px}
+.workout-summary>h3{margin-top:20px}

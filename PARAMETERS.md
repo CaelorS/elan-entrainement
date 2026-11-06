@@ -11,7 +11,7 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 | Champ MCP | Stockage | Description | Défaut |
 |---|---|---|---|
 | id | id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
-| nom | nom | Nom affiché. | — |
+| nom | nom | Noms d’exercices concis, idéalement quatre mots maximum. Ne jamais intégrer de poids chiffré dans le nom (ex. « Squat lesté », pas « Squat 4 kg ») ; renseigner la charge dans reference_kg et le matériel dans type_charge. Garder le mouvement et sa variante identifiables. | — |
 | categorie | categorie | Catégorie libre ; force et echauffement pilotent le moteur. | "force" |
 | type_charge | type_charge | Matériel ; poids_du_corps est un alias de poids_corps. | "aucune" |
 | unilateral | unilateral | Un côté puis l’autre. | false |

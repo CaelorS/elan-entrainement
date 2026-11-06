@@ -7,7 +7,7 @@ const positiveDuration=duration.refine(v=>v>0,'La durée doit être positive');
 const days=z.array(z.number().int().min(0).max(6)).max(7).refine(v=>new Set(v).size===v.length,'Jours dupliqués');
 const date=z.union([z.literal(''),z.iso.date()]);
 export const exerciseSchema=z.object({
- id,nom:z.string().trim().min(1).max(200).describe('Nom affiché.'),
+ id,nom:z.string().trim().min(1).max(200).describe('Noms d’exercices concis, idéalement quatre mots maximum. Ne jamais intégrer de poids chiffré dans le nom (ex. « Squat lesté », pas « Squat 4 kg ») ; renseigner la charge dans reference_kg et le matériel dans type_charge. Garder le mouvement et sa variante identifiables.'),
  categorie:z.string().max(100).default('force').describe('Catégorie libre ; force et echauffement pilotent le moteur.'),
  type_charge:z.enum(['aucune','barre','halteres','machine','poulie','elastique','poids_corps','poids_du_corps']).default('aucune').describe('Matériel ; poids_du_corps est un alias de poids_corps.').transform(v=>v==='poids_du_corps'?'poids_corps':v),
  unilateral:z.boolean().default(false).describe('Un côté puis l’autre.'),
