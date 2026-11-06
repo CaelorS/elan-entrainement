@@ -281,3 +281,14 @@ html:has(.workout-main) {overflow-anchor:none}
 .workout-summary .summary-stats{margin:18px 0;padding:16px 0}
 .workout-summary>h2{margin-top:18px}
 .workout-summary>h3{margin-top:20px}
+
+/* Settings use one body style and one title style, including nested panels. */
+.settings-dialog{font-size:16px;line-height:1.5}
+.settings-dialog :is(p,small,li,summary,.field-label,.switch-row,.sync-panel,.install-note){font-family:inherit;font-size:16px;line-height:1.5;font-weight:400;letter-spacing:normal}
+.settings-dialog :is(h2,h3,h4){font-family:inherit;font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.3px}
+.settings-dialog :is(button,input,select,textarea,.secondary,.text-button){font-family:inherit;font-size:16px;line-height:1.5;letter-spacing:normal}
+.settings-dialog :is(button,.secondary,.text-button){font-weight:600}
+.settings-dialog :is(strong,code){font-family:inherit;font-size:inherit;line-height:inherit}
+.settings-dialog :is(p,small,li){overflow-wrap:anywhere}
+.settings-dialog [data-slot=dialog-title]{font-size:22px!important;line-height:1.25;letter-spacing:-.3px}
+.settings-dialog [data-slot=dialog-description],.settings-dialog .ai-connections input[readonly]{font-family:inherit;font-size:16px;line-height:1.5}
