@@ -173,18 +173,19 @@ export function advanceWorkout(run:Run,now=Date.now(),automatic=false):Run {
  if(automatic&&(run.transitionSeconds??5)>0&&['COUNTDOWN','READY'].includes(next.phase))return {...next,phase:'COUNTDOWN',deadline:now+(run.transitionSeconds??5)*1000};
  return startExecution(next,now);
 }
-export function tickWorkout(run:Run,barKg:number,now=Date.now(),autoFillers=false):Run {
+export function tickWorkout(run:Run,barKg:number,now=Date.now(),autoFillers=true):Run {
  if(run.pausedAt!==null)return run;
  if(run.phase==='REST'){
   let next=run;
-  // Manual by default: neither an activity timer nor the rest timer confirms a filler.
-  if(!autoFillers&&next.tasks[next.cursor]?.fillers?.[next.fillerIndex])return next;
-  // In automatic mode, record every remaining filler before leaving the rest.
-  while(next.fillerDeadline&&next.fillerDeadline<=now&&next.fillerDeadline<=(run.deadline??Infinity)){
+  // Only timed fillers can confirm themselves, at their own full deadline.
+  // Recovery expiry must never validate repetitions or truncate an unfinished hold.
+  while(autoFillers&&next.fillerDeadline!==null&&next.fillerDeadline<=now){
+   const filler=next.tasks[next.cursor]?.fillers?.[next.fillerIndex];
+   if(!filler||measureFor(filler.ex,filler.entry)!=='duration')break;
    next=completeFiller(next,barKg,true,next.fillerDeadline);
   }
+  if(next.tasks[next.cursor]?.fillers?.[next.fillerIndex])return next;
   if(run.deadline!==null&&now>=run.deadline){
-   while(next.tasks[next.cursor]?.fillers?.[next.fillerIndex])next=completeFiller(next,barKg,true,Math.max(next.fillerAt,run.deadline));
    return advanceWorkout(next,now,true);
   }
   return next;

@@ -188,13 +188,13 @@ test('rest expiry prepares the next approach with the configured transition',()=
  assert.equal(run.phase,'REST');const end=run.deadline!;run=tickWorkout(run,20,end);
  assert.equal(run.phase,'COUNTDOWN');assert.equal(run.tasks[run.cursor].factor,.75);assert.equal(run.deadline,end+5000);assert.equal(tickWorkout(run,20,end+5000).executionAt,end+5000);
 });
-test('expired rest waits for explicit filler confirmation by default',()=>{
+test('manual preference waits for explicit filler confirmation after rest expiry',()=>{
  let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:100};
  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);const end=run.deadline!;
- run=tickWorkout(run,20,end);assert.equal(run.phase,'REST');assert.equal(run.rows.length,0);run=completeFiller(run,20,false,end+5000);run=tickWorkout(run,20,end+5000);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows.length,1);
+ run=tickWorkout(run,20,end,false);assert.equal(run.phase,'REST');assert.equal(run.rows.length,0);run=completeFiller(run,20,false,end+5000);run=tickWorkout(run,20,end+5000);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows.length,1);
 });
 test('completed timed insert is recorded at rest expiry and pause freezes transitions',()=>{
- let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:45};
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'insert',seconds:45,entry:{...run.tasks[0].entry,mesure:'duration' as const,duree_s:45}};
  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);
  const paused=togglePause(run,2000);assert.equal(tickWorkout(paused,20,100000),paused);
  run=tickWorkout(run,20,run.deadline!,true);assert.equal(run.phase,'COUNTDOWN');assert.equal(run.rows.length,1);assert.equal(run.rows[0].intercalaire,true);
@@ -211,14 +211,15 @@ test('next exercise still requests an unconfirmed load and restart resumes pause
 
 test('rowing uses one kg and skips a newer session without usable load',()=>{const ex={...squat,id:'rowing_haltere'};const older={...session(2,'facile',12,20),series:session(2).series.map(r=>({...r,exercice_id:ex.id,charge_kg:20})),retours:[{exercice_id:ex.id,retour:'facile'} as any]};const recent={...session(1),series:[{...older.series[0],charge_applicable:false,charge_kg:0}]};assert.equal(suggest(ex,entry,'other',[recent,older]).charge,21);assert.equal(suggest(ex,entry,'other',[{...older,retours:[{exercice_id:ex.id,retour:'trop_dur'} as any]}]).charge,19)});
 
-test('automatic mode records unfinished fillers instead of silently dropping them',()=>{
- let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'long-insert',seconds:500};
+test('automatic timed filler finishes its full duration even after recovery expires',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');const filler={...run.tasks[0],id:'long-insert',seconds:500,entry:{...run.tasks[0].entry,mesure:'duration' as const,duree_s:500}};
  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[filler]}:t)};run=enter(run,i,1000);
- const result=tickWorkout(run,20,run.deadline!,true);assert.equal(result.phase,'COUNTDOWN');assert.equal(result.rows.length,1);assert.equal(result.rows[0].valide_auto,true);
+ assert.equal(tickWorkout(run,20,run.deadline!),run);
+ const result=tickWorkout(run,20,501000);assert.equal(result.phase,'COUNTDOWN');assert.equal(result.rows.length,1);assert.equal(result.rows[0].valide_auto,true);assert.equal(result.rows[0].duree_s,500);
 });
 test('expired rest while validating a set cannot bypass its unconfirmed filler',()=>{
  let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');run.tasks[i].fillers=[{...run.tasks[0],id:'insert',seconds:120}];
- run=startExecution(confirmLoad(run,1000),6000);run=completeExecution(run,10000);run=tickWorkout(run,20,run.restDeadline!+1000);
+ run=startExecution(confirmLoad(run,1000),6000);run=completeExecution(run,10000);run=tickWorkout(run,20,run.restDeadline!+1000,false);
  assert.equal(run.phase,'REST');assert.equal(run.fillerIndex,0);assert.equal(run.rows.length,1);
 });
 test('a completed workout never becomes interrupted and retains its actual end time',()=>{
@@ -270,4 +271,28 @@ test('weighted timed work keeps validation and a single work set never announces
  run=startExecution(confirmLoad(run,1000),1000);const done=completeExecution(run,31000,20);
  assert.equal(done.phase,'VALIDATION');assert.equal(done.duration_s,30);
  assert.equal(validateExecution(done,20,false,32000).phase,'BILAN');
+});
+
+
+test('timed fillers automatically chain at their deadlines and preserve remaining recovery',()=>{
+ let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');
+ const fillers=['gauche','droite'].map((side,n)=>({...run.tasks[0],id:'timed-'+n,side:side as 'gauche'|'droite',seconds:10,entry:{...run.tasks[0].entry,mesure:'duration' as const,duree_s:10}}));
+ run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers}:t)};run=enter(run,i,1000);const end=run.deadline;
+ assert.equal(tickWorkout(run,20,10999),run);
+ assert.equal(tickWorkout(run,20,11000,false),run);
+ const first=tickWorkout(run,20,11000);assert.equal(first.fillerIndex,1);assert.equal(first.fillerDeadline,21000);assert.equal(first.rows[0].duree_s,10);assert.equal(first.rows[0].cote,'gauche');
+ const resumed=tickWorkout(JSON.parse(JSON.stringify(first)),20,25000);assert.equal(resumed.phase,'REST');assert.equal(resumed.deadline,end);assert.equal(resumed.fillerIndex,2);assert.deepEqual(resumed.rows.map(r=>[r.duree_s,r.cote,r.valide_auto]),[[10,'gauche',true],[10,'droite',true]]);
+ assert.equal(tickWorkout(resumed,20,26000),resumed);
+ assert.equal(tickWorkout(resumed,20,end!).phase,'COUNTDOWN');
+ const caughtUp=tickWorkout(run,20,25000);assert.equal(caughtUp.rows.length,2);assert.deepEqual(caughtUp.rows.map(r=>r.duree_s),[10,10]);
+});
+test('automatic preference never confirms repetition or distance fillers at rest expiry',()=>{
+ for(const mesure of ['reps','distance'] as const){
+  let run=forceRun();const i=run.tasks.findIndex(t=>t.kind==='rest');
+  const base=run.tasks[0],timed={...base,id:'timed',seconds:10,entry:{...base.entry,mesure:'duration' as const,duree_s:10}};
+  const manual={...base,id:'manual',seconds:5,entry:{...base.entry,mesure,duree_s:0,distance_m:2}};
+  run={...run,confirmedLoads:['squat'],tasks:run.tasks.map((t,j)=>j===i?{...t,fillers:[timed,manual]}:t)};run=enter(run,i,1000);
+  run=tickWorkout(run,20,run.deadline!);assert.equal(run.phase,'REST');assert.equal(run.fillerIndex,1);assert.equal(run.rows.length,1);
+  run=completeFiller(run,20,false,run.deadline!+1000);assert.equal(tickWorkout(run,20,run.deadline!+1000).phase,'COUNTDOWN');assert.equal(run.rows[1].valide_auto,false);
+ }
 });
