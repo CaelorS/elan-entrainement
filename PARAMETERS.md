@@ -2,14 +2,116 @@
 
 Référence générée depuis les schémas MCP. Toutes les durées modifiables utilisent `MM:SS`. Les entraînements réalisés sont accessibles séparément en lecture seule, après autorisation de l’historique.
 
+- Pour changer de format, utiliser elan_set_exercise_format avec target=session (session_id + ordre + exercice_id) ou target=defaults (exercice_id). settings.type choisit reps, duration, distance, execution, cycle ou steps. La commande nettoie les anciens paramètres incompatibles et conserve le placement et les jours.
+- parametres_defaut dans elan_save_exercise configure uniquement les futurs ajouts ; les séances existantes gardent leurs paramètres. Le champ format des entrées est un ancien texte libre : ce n’est pas le sélecteur de format.
 - Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.
 - Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.
 - Les champs techniques sont consultables dans les résultats bruts ; ils ne sont pas acceptés en écriture. Les entraînements réalisés et leurs mesures ne font pas partie de la programmation.
+
+## Formats d’exercice
+
+Utiliser `elan_set_exercise_format` après lecture de la révision. Cible `{type: "session", session_id, ordre, exercice_id}` pour une occurrence précise, ou `{type: "defaults", exercice_id}` pour les futurs ajouts. Les autres occurrences et l’historique restent inchangés. `settings` suit un des exemples ci-dessous.
+
+La fiche `elan_save_exercise.exercise.parametres_defaut` accepte également ces réglages ; `null` efface les valeurs par défaut.
+
+### Répétitions (`reps`)
+
+Séries et répétitions ; les charges restent dans reference_kg, indépendamment du format.
+
+```json
+{
+  "type": "reps",
+  "series": 3,
+  "reps_min": 8,
+  "reps_max": 12,
+  "repos": "02:00"
+}
+```
+
+### Durée (`duration`)
+
+Durée par passage et par côté. durees permet des durées différentes selon les séries.
+
+```json
+{
+  "type": "duration",
+  "series": 1,
+  "duree": "00:30",
+  "repos": "00:00"
+}
+```
+
+### Distance (`distance`)
+
+Distance en mètres par passage et par côté.
+
+```json
+{
+  "type": "distance",
+  "series": 2,
+  "distance_m": 2,
+  "repos": "00:30"
+}
+```
+
+### Exécution libre (`execution`)
+
+Aucune cible chiffrée. L’utilisateur valide manuellement.
+
+```json
+{
+  "type": "execution",
+  "series": 1,
+  "repos": "00:00"
+}
+```
+
+### Cycles effort / repos (`cycle`)
+
+Alternance chronométrée au sein de chaque passage. Durée = count × (work + rest), par côté. Le repos entre passages est séparé.
+
+```json
+{
+  "type": "cycle",
+  "series": 1,
+  "cycle": {
+    "count": 10,
+    "work": "00:05",
+    "rest": "00:05"
+  },
+  "repos": "00:00"
+}
+```
+
+### Enchaînement d’étapes (`steps`)
+
+Séquence unique de mouvements chronométrés. Chaque étape précise son côté ; aucune duplication gauche/droite automatique. Hors des pauses, sans séries d’approche. Durée totale calculée.
+
+```json
+{
+  "type": "steps",
+  "steps": [
+    {
+      "exercice_id": "knee_to_wall",
+      "duree": "00:30",
+      "cote": "gauche",
+      "consigne": "Talon au sol."
+    },
+    {
+      "exercice_id": "knee_to_wall",
+      "duree": "00:30",
+      "cote": "droite",
+      "consigne": "Talon au sol."
+    }
+  ]
+}
+```
 
 ## Fiche exercice
 
 | Champ MCP | Stockage | Description | Défaut |
 |---|---|---|---|
+| parametres_defaut | parametres_defaut | Format et cibles proposés aux futurs ajouts de cet exercice ; omis = conserver, null = effacer. Ne modifie pas les séances existantes. | — |
 | id | id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
 | nom | nom | Noms d’exercices concis, idéalement quatre mots maximum. Ne jamais intégrer de poids chiffré dans le nom (ex. « Squat lesté », pas « Squat 4 kg ») ; renseigner la charge dans reference_kg et le matériel dans type_charge. Garder le mouvement et sa variante identifiables. | — |
 | categorie | categorie | Catégorie libre ; force et echauffement pilotent le moteur. | "force" |
@@ -92,7 +194,6 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 
 ## Champs techniques en lecture seule
 
-- `exercise.parametres_defaut` : Format et cibles par défaut définis dans l’application pour les futurs ajouts. Consultables dans la fiche brute et conservés par le MCP ; les paramètres de chaque séance restent modifiables via elan_save_session.
 - `exercise.reference_at` : Date technique de la charge de référence, millisecondes Unix ; automatique.
 - `exercise.revision` : Révision technique automatique.
 - `session.version` : Version interne automatique, non présentée à l’utilisateur.

@@ -3,6 +3,8 @@ import {historyReference} from './history.ts';
 import {parameterReference,fieldMap,managedFields} from './parameters.ts';
 const ref={...parameterReference(),history:historyReference};
 const rows:string[]=['# Paramètres de programmation Élan','', 'Référence générée depuis les schémas MCP. Toutes les durées modifiables utilisent `MM:SS`. Les entraînements réalisés sont accessibles séparément en lecture seule, après autorisation de l’historique.','',...ref.semantics.map(x=>'- '+x),''];
+rows.push('## Formats d’exercice','','Utiliser `elan_set_exercise_format` après lecture de la révision. Cible `{type: "session", session_id, ordre, exercice_id}` pour une occurrence précise, ou `{type: "defaults", exercice_id}` pour les futurs ajouts. Les autres occurrences et l’historique restent inchangés. `settings` suit un des exemples ci-dessous.','','La fiche `elan_save_exercise.exercise.parametres_defaut` accepte également ces réglages ; `null` efface les valeurs par défaut.','');
+for(const f of ref.exercise_formats)rows.push('### '+f.label+' (`'+f.type+'`)','',f.description,'','```json',JSON.stringify(f.example,null,2),'```','');
 function table(title:string,schema:any,map:Record<string,string>){rows.push('## '+title,'','| Champ MCP | Stockage | Description | Défaut |','|---|---|---|---|');for(const [name,p] of Object.entries(schema.properties) as [string,any][]){rows.push(`| ${name} | ${map[name]??name} | ${(p.description??'Voir champs imbriqués.').replaceAll('|','/')} | ${p.default===undefined?'—':JSON.stringify(p.default)} |`)}rows.push('')}
 table('Fiche exercice',ref.exercise,fieldMap.exercise);table('Séance',ref.session,fieldMap.session);
 const entry=(ref.session as any).properties.exercices.items;table('Exercice dans une séance',entry,fieldMap.entry);

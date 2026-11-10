@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createElanHandler,sessionSchema,type Snapshot} from './core.ts';
 function fixture(){let state:Snapshot={program:{catalogue:[],modeles:[]},catalogue:[],revision:0,can_write:true};return {read:async()=>structuredClone(state),write:async(program:Snapshot['program'],revision:number)=>{if(revision!==state.revision)throw Error('conflict');state={...state,program,revision:revision+1};return state},readOnly:()=>{state.can_write=false}}}
 async function rpc(repo:ReturnType<typeof fixture>,method:string,params:unknown={}){const res=await createElanHandler(repo).fetch(new Request('https://example.test/mcp',{method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})}));const body=await res.text();const parsed=JSON.parse(body.startsWith('event:')?body.split('\n').find(l=>l.startsWith('data:'))!.slice(5):body);return parsed}
-test('MCP handshake and discovery expose tools with valid input schemas',async()=>{const r=fixture();const init=await rpc(r,'initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test',version:'1'}});assert.equal(init.result.serverInfo.name,'elan');const list=await rpc(r,'tools/list');assert.equal(list.result.tools.length,10);assert.ok(list.result.tools.find((t:any)=>t.name==='elan_save_session').inputSchema.properties.session)});
+test('MCP handshake and discovery expose tools with valid input schemas',async()=>{const r=fixture();const init=await rpc(r,'initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test',version:'1'}});assert.equal(init.result.serverInfo.name,'elan');const list=await rpc(r,'tools/list');assert.equal(list.result.tools.length,11);assert.ok(list.result.tools.find((t:any)=>t.name==='elan_save_session').inputSchema.properties.session)});
 test('MCP creates exercises and sessions, rejects stale writes and read-only writes',async()=>{const repo=fixture();const call=(name:string,args:unknown)=>rpc(repo,'tools/call',{name,arguments:args});let r=await call('elan_save_exercise',{revision:0,exercise:{id:'squat',nom:'Squat',type_charge:'barre'}});assert.equal(r.result.structuredContent.revision,1);r=await call('elan_save_session',{revision:1,session:{id:'lower',nom:'Bas du corps',jours:[1,4],exercices:[{exercice_id:'squat',series:3,reps_min:5,reps_max:5,mesure:'reps',repos:'03:00',repos_approche:'01:30'}]}});assert.equal(r.result.structuredContent.revision,2);assert.equal((await repo.read()).program.modeles[0].exercices[0].approche_repos_s,90);r=await call('elan_archive_session',{revision:1,id:'lower',archive:true});assert.equal(r.result.isError,true);repo.readOnly();r=await call('elan_archive_session',{revision:2,id:'lower',archive:true});assert.equal(r.result.isError,true)});
 test('invalid durations and references cannot create corrupt sessions',async()=>{assert.equal(sessionSchema.safeParse({id:'x',nom:'x',exercices:[{exercice_id:'x',series:2,mesure:'duration',duree:'01:70'}]}).success,false);const repo=fixture();const r=await rpc(repo,'tools/call',{name:'elan_save_session',arguments:{revision:0,session:{id:'x',nom:'x',exercices:[{exercice_id:'missing',series:1,mesure:'duration',duree:'01:00'}]}}});assert.equal(r.result.isError,true);assert.equal((await repo.read()).revision,0)});
 test('all advanced parameters round-trip and omitted fields survive legacy edits',async()=>{
@@ -62,4 +62,53 @@ test('icon discovery, defaults, manual edits and legacy clients round-trip throu
  for(const icon of icons){const state=await repo.read();r=await call('elan_save_session',{revision:state.revision,session:{...session,icon_id:icon.id}});assert.equal(r.structuredContent.editable_session.icon_id,icon.id)}
  r=await call('elan_save_session',{revision:(await repo.read()).revision,session});assert.equal(r.structuredContent.editable_session.icon_id,'cardio');
  const before=await repo.read();const bad=await rpc(repo,'tools/call',{name:'elan_save_session',arguments:{revision:before.revision,session:{...session,icon_id:'bogus'}}});assert.ok(bad.error||bad.result?.isError);assert.deepEqual(await repo.read(),before);
+});
+
+test('format tool changes all six formats, clears incompatible targets and preserves placement and history versions',async()=>{
+ const repo=fixture(),call=async(name:string,args:any)=>(await rpc(repo,'tools/call',{name,arguments:args})).result;
+ await call('elan_save_exercise',{revision:0,exercise:{id:'x',nom:'X',unilateral:true}});
+ await call('elan_save_session',{revision:1,session:{id:'s',nom:'S',exercices:[{exercice_id:'x',ordre:7,series:2,mesure:'reps',reps_min:8,reps_max:10,repos:'02:00',jours:[2,5],note:'À conserver',angle_deg:90},{exercice_id:'x',ordre:8,series:1,mesure:'reps',reps_min:5,reps_max:5}]}});
+ const original=(await repo.read()).program.modeles[0];
+ const formats=[{type:'cycle',series:2,cycle:{count:10,work:'00:05',rest:'00:05'}},{type:'duration',series:2,duree:'00:30',durees:['00:30','00:40']},{type:'distance',series:1,distance_m:2.5},{type:'steps',steps:[{exercice_id:'x',duree:'00:30',cote:'gauche'},{exercice_id:'x',duree:'00:30',cote:'droite'}]},{type:'execution',series:1},{type:'reps',series:3,reps_min:6,reps_max:8}];
+ for(const settings of formats){
+  const before=await repo.read(),r=await call('elan_set_exercise_format',{revision:before.revision,target:{type:'session',session_id:'s',ordre:7,exercice_id:'x'},settings});assert.ok(!r.isError,JSON.stringify(r));
+  const after=await repo.read(),current=after.program.modeles.at(-1)!,e=current.exercices[0];assert.deepEqual(current.exercices[1],original.exercices[1]);assert.equal(e.note,'À conserver');assert.deepEqual(e.jours,[2,5]);assert.equal(e.angle_deg,90);assert.equal(e.ordre,7);assert.equal(r.structuredContent.settings.type,settings.type);assert.equal(after.revision,before.revision+1);assert.equal(after.program.modeles.length,before.program.modeles.length+1);
+  if(settings.type!=='cycle')assert.equal(e.cycle,undefined);if(settings.type!=='steps')assert.equal(e.steps,undefined);if(settings.type!=='distance')assert.equal(e.distance_m,undefined);if(settings.type!=='duration')assert.equal(e.durees_s,undefined);if(settings.type!=='reps')assert.equal(e.reps_max,0);
+  if(settings.type==='cycle')assert.equal(e.duree_s,100);if(settings.type==='steps'){assert.equal(e.duree_s,60);assert.equal(e.series,1)}
+ }
+ assert.deepEqual((await repo.read()).program.modeles[0].exercices,original.exercices);
+});
+test('catalogue defaults are writable via both tools, round-trip and do not rewrite sessions',async()=>{
+ const repo=fixture(),call=async(name:string,args:any)=>(await rpc(repo,'tools/call',{name,arguments:args})).result;
+ let r=await call('elan_save_exercise',{revision:0,exercise:{id:'x',nom:'X',parametres_defaut:{type:'duration',series:2,duree:'00:30'}}});assert.ok(!r.isError,JSON.stringify(r));assert.equal(r.structuredContent.exercise.parametres_defaut.duree_s,30);assert.equal(r.structuredContent.editable_exercise.parametres_defaut.duree,'00:30');
+ r=await call('elan_save_exercise',{revision:1,exercise:r.structuredContent.editable_exercise});assert.ok(!r.isError,JSON.stringify(r));
+ await call('elan_save_session',{revision:2,session:{id:'s',nom:'S',exercices:[{exercice_id:'x',series:1,mesure:'reps',reps_min:5,reps_max:5}]}});
+ const original=(await repo.read()).program.modeles;
+ r=await call('elan_set_exercise_format',{revision:3,target:{type:'defaults',exercice_id:'x'},settings:{type:'cycle',series:1,cycle:{count:3,work:'00:05',rest:'00:05'}}});assert.ok(!r.isError,JSON.stringify(r));assert.equal(r.structuredContent.exercise.parametres_defaut.duree_s,30);assert.deepEqual((await repo.read()).program.modeles,original);
+ const read=(await call('elan_list_exercises',{})).structuredContent.editable_exercises[0];assert.equal(read.parametres_defaut.type,'cycle');
+ r=await call('elan_save_exercise',{revision:4,exercise:{...read,nom:'Renommé',parametres_defaut:undefined}});assert.equal(r.structuredContent.exercise.parametres_defaut.cycle.count,3);
+ r=await call('elan_save_exercise',{revision:5,exercise:{...read,parametres_defaut:null}});assert.equal(r.structuredContent.exercise.parametres_defaut,undefined);
+});
+test('format errors, stale revisions and read-only access never write',async()=>{
+ const repo=fixture(),call=(args:any)=>rpc(repo,'tools/call',{name:'elan_set_exercise_format',arguments:args});
+ await rpc(repo,'tools/call',{name:'elan_save_exercise',arguments:{revision:0,exercise:{id:'x',nom:'X'}}});
+ const target={type:'defaults',exercice_id:'x'},before=await repo.read();
+ const invalid=[{type:'duration',series:1,duree:'00:00'},{type:'duration',series:1,duree:'30'},{type:'duration',series:2,duree:'00:30',durees:['00:30']},{type:'reps',series:2,reps_min:10,reps_max:5},{type:'distance',series:1,distance_m:-1},{type:'cycle',series:1,cycle:{count:1.5,work:'00:05',rest:'00:05'}},{type:'steps',steps:[{exercice_id:'unknown',duree:'00:30'}]},{type:'steps',steps:[]},{type:'execution',series:1,cycle:{count:2,work:'00:10',rest:'00:05'}}];
+ for(const settings of invalid){const r=await call({revision:1,target,settings});assert.ok(r.error||r.result?.isError,JSON.stringify(r));assert.deepEqual(await repo.read(),before)}
+ const settings={type:'duration',series:1,duree:'00:30'};
+ for(const args of [{revision:0,target,settings},{revision:1,target:{...target,exercice_id:'unknown'},settings},{revision:1,target:{type:'session',session_id:'none',ordre:1,exercice_id:'x'},settings}]){const r=await call(args);assert.ok(r.error||r.result?.isError);assert.deepEqual(await repo.read(),before)}
+ repo.readOnly();const r=await call({revision:1,target,settings});assert.equal(r.result.isError,true);assert.equal((await repo.read()).revision,1);
+});
+test('documented format examples parse and defaults remain compatible with the app',async()=>{
+ const {exerciseFormatsReference,exerciseFormatSchema,formatEntry}=await import('./exercise-formats.ts');
+ const {parameterReference}=await import('./parameters.ts');const ref=parameterReference();assert.equal(ref.exercise_formats.length,6);assert.ok((ref.exercise as any).properties.parametres_defaut);
+ for(const f of exerciseFormatsReference){const parsed=exerciseFormatSchema.parse(f.example),entry=formatEntry('knee_to_wall',parsed);assert.equal(entry.exercice_id,'knee_to_wall');assert.ok(entry.series>=1);assert.ok(entry.mesure);assert.equal(entry.format,'')}
+});
+test('changing an intercalaire keeps its assigned pause and rejects an incompatible sequence',async()=>{
+ const repo=fixture(),call=async(name:string,args:any)=>(await rpc(repo,'tools/call',{name,arguments:args})).result;
+ await call('elan_save_exercise',{revision:0,exercise:{id:'x',nom:'X',unilateral:true}});
+ await call('elan_save_session',{revision:1,session:{id:'s',nom:'S',pauses_explicites:true,exercices:[{exercice_id:'x',ordre:4,series:3,mesure:'reps',reps_min:5,reps_max:5,repos:'02:00'},{exercice_id:'x',ordre:9,series:1,mesure:'duration',cycle:{count:10,work:'00:05',rest:'00:05'},intercalaire_de:[4],pause:{approche:false,index:2},jours:[1]}]}});
+ const target={type:'session',session_id:'s',ordre:9,exercice_id:'x'};
+ const r=await call('elan_set_exercise_format',{revision:2,target,settings:{type:'duration',series:1,duree:'00:30'}});assert.ok(!r.isError,JSON.stringify(r));const e=(await repo.read()).program.modeles.at(-1)!.exercices[1];assert.deepEqual(e.intercalaire_de,[4]);assert.deepEqual(e.pause,{approche:false,index:2});assert.deepEqual(e.jours,[1]);assert.equal(e.cycle,undefined);assert.equal(e.duree_s,30);
+ const before=await repo.read();for(const args of [{target,settings:{type:'steps',steps:[{exercice_id:'x',duree:'00:30'}]}},{target:{...target,ordre:99},settings:{type:'duration',series:1,duree:'00:30'}}]){const bad=await call('elan_set_exercise_format',{revision:3,...args});assert.equal(bad.isError,true);assert.deepEqual(await repo.read(),before)}
 });
