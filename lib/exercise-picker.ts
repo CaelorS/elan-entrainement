@@ -1,11 +1,13 @@
+import {defaultExerciseEntry} from './exercise-format.ts';
 import type {Exercise,Entry,Model} from './types.ts';
 const normalize=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[’']/g,' ').trim();
 export function matchesExercise(ex:Exercise,query:string){const text=normalize(ex.nom+' '+ex.categorie+' '+ex.type_charge);return normalize(query).split(/\s+/).every(word=>text.includes(word))}
 export function sharedExerciseTemplate(ex:Exercise,current:Model,models:Model[]):Entry{
+ if(ex.parametres_defaut)return defaultExerciseEntry(ex);
  const all=[current,...models.filter(m=>m!==current&&!m.actif_au),...models.filter(m=>m.actif_au)];
  const template=all.flatMap(m=>m.exercices).find(e=>e.exercice_id===ex.id&&e.intercalaire_de.length)??all.flatMap(m=>m.exercices).find(e=>e.exercice_id===ex.id);
  if(template)return structuredClone(template);
- return {exercice_id:ex.id,series:1,reps_min:ex.categorie==='force'?10:0,reps_max:ex.categorie==='force'?10:0,duree_s:ex.categorie==='force'?0:30,repos_s:0,approche:false,intercalaire_de:[],format:'',note:'',ordre:0,...(ex.id==='marche_escargot'?{mesure:'distance',distance_m:2,duree_s:0}:{})};
+ return defaultExerciseEntry(ex);
 }
 export function insertTemplate(ex:Exercise,current:Model,models:Model[],copy?:Entry|null):Entry{
  const template=copy?.exercice_id===ex.id?structuredClone(copy):sharedExerciseTemplate(ex,current,models);

@@ -11,3 +11,11 @@
 
 .compact-exercise .exercise-parameters .parameter-chip:focus{ text-overflow:clip }
 @media(max-width:360px){.compact-exercise .exercise-parameters{gap:4px}.parameter-label{font-size:11px}}
+
+.exercise-format-fields{display:grid;gap:12px;padding:14px 0;border-block:1px solid var(--border)}
+.exercise-format-fields>p{margin:0;font-size:15px;line-height:1.5}
+.exercise-steps{display:grid;gap:16px;min-width:0}
+.exercise-steps fieldset{display:grid;gap:12px;min-width:0;border:1px solid var(--border);border-radius:10px;padding:12px}
+.exercise-steps legend{padding:0 6px;font-size:16px;font-weight:600}
+.exercise-format-fields select{width:100%}
+.parameter-error{color:#ffb4a8;font-size:16px}
