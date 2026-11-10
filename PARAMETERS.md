@@ -92,6 +92,7 @@ Référence générée depuis les schémas MCP. Toutes les durées modifiables u
 
 ## Champs techniques en lecture seule
 
+- `exercise.parametres_defaut` : Format et cibles par défaut définis dans l’application pour les futurs ajouts. Consultables dans la fiche brute et conservés par le MCP ; les paramètres de chaque séance restent modifiables via elan_save_session.
 - `exercise.reference_at` : Date technique de la charge de référence, millisecondes Unix ; automatique.
 - `exercise.revision` : Révision technique automatique.
 - `session.version` : Version interne automatique, non présentée à l’utilisateur.

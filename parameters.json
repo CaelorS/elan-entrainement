@@ -686,6 +686,7 @@
   },
   "read_only": {
     "exercise": {
+      "parametres_defaut": "Format et cibles par défaut définis dans l’application pour les futurs ajouts. Consultables dans la fiche brute et conservés par le MCP ; les paramètres de chaque séance restent modifiables via elan_save_session.",
       "reference_at": "Date technique de la charge de référence, millisecondes Unix ; automatique.",
       "revision": "Révision technique automatique."
     },
