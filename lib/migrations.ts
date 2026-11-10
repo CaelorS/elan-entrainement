@@ -1,3 +1,4 @@
+import {normalizeProgram} from './legacy-formats.ts';
 import type {LocalData,Program} from './types';
 
 // Apply only explicitly revised default entries; preserve user models, history and active runs.
@@ -16,7 +17,7 @@ export function migrateProgram(current:Program,defaults:Program):Program {
   });
   return changed?{...model,exercices,version:model.version+1}:model;
  });
- return updated?{...current,revision:Math.max(current.revision??0,defaults.revision??0),catalogue,modeles}:current;
+ return normalizeProgram(updated?{...current,revision:Math.max(current.revision??0,defaults.revision??0),catalogue,modeles}:current);
 }
 export function migrateData(data:LocalData,defaults:Program):LocalData {
  const program=migrateProgram(data.program,defaults);

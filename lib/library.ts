@@ -50,7 +50,7 @@ export function restBudget(model:Model,catalogue:import('./types').Exercise[]){
  for(const e of model.exercices.filter(e=>e.intercalaire_de.length).sort((a,b)=>a.intercalaire_de.length-b.intercalaire_de.length)){
   const ex=catalogue.find(x=>x.id===e.exercice_id);if(!ex)continue;
   const perSide=(i:number)=>e.cycle?e.cycle.count*(e.cycle.work_s+e.cycle.rest_s):measureFor(ex,e)==='duration'?(e.durees_s?.[i]??e.duree_s):measureFor(ex,e)==='distance'?Math.max(20,(e.distance_m??0)*10):measureFor(ex,e)==='reps'?0:30;
-  const durations=Array.from({length:e.series},(_,i)=>Math.ceil(perSide(i)*(ex.unilateral?2:1)));
+  const durations=Array.from({length:e.series},(_,i)=>Math.ceil(perSide(i)*(e.cote?1:ex.unilateral?2:1)));
   const eligible=slots.filter(s=>e.intercalaire_de.includes(s.order));const total=durations.reduce((n,v)=>n+v,0);
   const groups=eligible.some(s=>s.seconds>=total)?[total]:durations;
   for(const seconds of groups){const free=eligible.filter(s=>!s.used).sort((a,b)=>Number(b.seconds>=seconds)-Number(a.seconds>=seconds)||a.seconds-b.seconds);const slot=free[0];const report=reports.find(r=>r.order===(slot?.order??e.intercalaire_de[0]));if(!report)continue;report.required+=seconds;if(!slot){report.extraSlots++;report.missing+=seconds;continue}slot.used=true;report.missing+=Math.max(0,seconds-slot.seconds);}
@@ -83,8 +83,9 @@ export function newRestIssues(draft:Model,catalogue:import('./types').Exercise[]
 
 export function exerciseDuration(ex:import('./types').Exercise|undefined,entry:Entry,model?:Model,catalogue:import('./types').Exercise[]=ex?[ex]:[]):number{
  if(!ex)return 0;
+ if(entry.steps?.length)return entry.steps.reduce((n,s)=>n+s.duree_s,0);
  if(entry.intercalaire_de.length){
-  const sides=ex.unilateral?2:1;let work=0;
+  const sides=entry.cote?1:ex.unilateral?2:1;let work=0;
   for(let i=0;i<entry.series;i++)work+=entry.cycle?entry.cycle.count*(entry.cycle.work_s+entry.cycle.rest_s):measureFor(ex,entry)==='duration'?(entry.durees_s?.[i]??entry.duree_s):measureFor(ex,entry)==='reps'?0:measureFor(ex,entry)==='distance'?Math.max(20,(entry.distance_m??0)*10):30;
   return Math.round(work*sides);
  }

@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "exercise_formats": [
     {
       "type": "reps",
@@ -43,43 +43,6 @@
         "type": "execution",
         "series": 1,
         "repos": "00:00"
-      }
-    },
-    {
-      "type": "cycle",
-      "label": "Cycles effort / repos",
-      "description": "Alternance chronométrée au sein de chaque passage. Durée = count × (work + rest), par côté. Le repos entre passages est séparé.",
-      "example": {
-        "type": "cycle",
-        "series": 1,
-        "cycle": {
-          "count": 10,
-          "work": "00:05",
-          "rest": "00:05"
-        },
-        "repos": "00:00"
-      }
-    },
-    {
-      "type": "steps",
-      "label": "Enchaînement d’étapes",
-      "description": "Séquence unique de mouvements chronométrés. Chaque étape précise son côté ; aucune duplication gauche/droite automatique. Hors des pauses, sans séries d’approche. Durée totale calculée.",
-      "example": {
-        "type": "steps",
-        "steps": [
-          {
-            "exercice_id": "knee_to_wall",
-            "duree": "00:30",
-            "cote": "gauche",
-            "consigne": "Talon au sol."
-          },
-          {
-            "exercice_id": "knee_to_wall",
-            "duree": "00:30",
-            "cote": "droite",
-            "consigne": "Talon au sol."
-          }
-        ]
       }
     }
   ],
@@ -233,112 +196,6 @@
         "required": [
           "type",
           "series"
-        ],
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "cycle"
-          },
-          "series": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-            "description": "Séries ou passages, pour chaque côté si unilatéral."
-          },
-          "cycle": {
-            "type": "object",
-            "properties": {
-              "count": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 100
-              },
-              "work": {
-                "type": "string",
-                "pattern": "^\\d{1,5}:[0-5]\\d$",
-                "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-              },
-              "rest": {
-                "type": "string",
-                "pattern": "^\\d{1,5}:[0-5]\\d$",
-                "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-              }
-            },
-            "required": [
-              "count",
-              "work",
-              "rest"
-            ],
-            "additionalProperties": false
-          },
-          "repos": {
-            "description": "Repos entre séries ; omis = conserver le repos existant, sinon 00:00.",
-            "type": "string",
-            "pattern": "^\\d{1,5}:[0-5]\\d$"
-          }
-        },
-        "required": [
-          "type",
-          "series",
-          "cycle"
-        ],
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "steps"
-          },
-          "steps": {
-            "minItems": 1,
-            "maxItems": 100,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "exercice_id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 100,
-                  "pattern": "^[\\w.-]+$"
-                },
-                "duree": {
-                  "type": "string",
-                  "pattern": "^\\d{1,5}:[0-5]\\d$",
-                  "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-                },
-                "consigne": {
-                  "default": "",
-                  "type": "string",
-                  "maxLength": 5000
-                },
-                "cote": {
-                  "default": "bilateral",
-                  "type": "string",
-                  "enum": [
-                    "gauche",
-                    "droite",
-                    "bilateral"
-                  ]
-                }
-              },
-              "required": [
-                "exercice_id",
-                "duree"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "type",
-          "steps"
         ],
         "additionalProperties": false
       }
@@ -606,112 +463,6 @@
                   "series"
                 ],
                 "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "cycle"
-                  },
-                  "series": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "description": "Séries ou passages, pour chaque côté si unilatéral."
-                  },
-                  "cycle": {
-                    "type": "object",
-                    "properties": {
-                      "count": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 100
-                      },
-                      "work": {
-                        "type": "string",
-                        "pattern": "^\\d{1,5}:[0-5]\\d$",
-                        "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-                      },
-                      "rest": {
-                        "type": "string",
-                        "pattern": "^\\d{1,5}:[0-5]\\d$",
-                        "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-                      }
-                    },
-                    "required": [
-                      "count",
-                      "work",
-                      "rest"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "repos": {
-                    "description": "Repos entre séries ; omis = conserver le repos existant, sinon 00:00.",
-                    "type": "string",
-                    "pattern": "^\\d{1,5}:[0-5]\\d$"
-                  }
-                },
-                "required": [
-                  "type",
-                  "series",
-                  "cycle"
-                ],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "const": "steps"
-                  },
-                  "steps": {
-                    "minItems": 1,
-                    "maxItems": 100,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "exercice_id": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 100,
-                          "pattern": "^[\\w.-]+$"
-                        },
-                        "duree": {
-                          "type": "string",
-                          "pattern": "^\\d{1,5}:[0-5]\\d$",
-                          "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-                        },
-                        "consigne": {
-                          "default": "",
-                          "type": "string",
-                          "maxLength": 5000
-                        },
-                        "cote": {
-                          "default": "bilateral",
-                          "type": "string",
-                          "enum": [
-                            "gauche",
-                            "droite",
-                            "bilateral"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "exercice_id",
-                        "duree"
-                      ],
-                      "additionalProperties": false
-                    }
-                  }
-                },
-                "required": [
-                  "type",
-                  "steps"
-                ],
-                "additionalProperties": false
               }
             ],
             "description": "Format et cibles. Choisir exactement une variante ; les anciens paramètres incompatibles seront supprimés."
@@ -943,6 +694,38 @@
         "items": {
           "type": "object",
           "properties": {
+            "cote": {
+              "description": "Côté imposé pour cette occurrence ; omis ou null = utiliser le réglage unilatéral de la fiche.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "gauche",
+                    "droite",
+                    "bilateral"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "consigne": {
+              "description": "Consigne propre à cette occurrence ; null = consigne du catalogue.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 5000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "echauffement": {
+              "description": "Exécution comme échauffement, sans charge ni progression.",
+              "type": "boolean"
+            },
             "exercice_id": {
               "type": "string",
               "minLength": 1,
@@ -987,7 +770,7 @@
               "description": "Répétitions, chronométré, mètres ou exécution libre."
             },
             "duree": {
-              "description": "Durée par série/côté ; recalculée si cycle ou étapes.",
+              "description": "Durée par série/côté.",
               "default": "00:00",
               "type": "string",
               "pattern": "^\\d{1,5}:[0-5]\\d$"
@@ -1082,7 +865,7 @@
               ]
             },
             "durees": {
-              "description": "Une durée MM:SS par série ; null efface. Exclusif avec cycle et steps.",
+              "description": "Une durée MM:SS par série ; null efface.",
               "anyOf": [
                 {
                   "minItems": 1,
@@ -1093,91 +876,6 @@
                     "pattern": "^\\d{1,5}:[0-5]\\d$",
                     "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
                   }
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "steps": {
-              "description": "Étapes chronométrées d’échauffement ; null efface. Une seule séquence, sans séries d’approche ni intercalaire.",
-              "anyOf": [
-                {
-                  "minItems": 1,
-                  "maxItems": 100,
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "exercice_id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 100,
-                        "pattern": "^[\\w.-]+$",
-                        "description": "Identifiant stable ; réutiliser pour modifier, nouveau pour créer."
-                      },
-                      "duree": {
-                        "type": "string",
-                        "pattern": "^\\d{1,5}:[0-5]\\d$",
-                        "description": "Minutes:secondes, ex. 03:30 (jamais un nombre de secondes)."
-                      },
-                      "consigne": {
-                        "type": "string",
-                        "maxLength": 5000,
-                        "description": "Consigne de cette étape."
-                      },
-                      "cote": {
-                        "description": "Côté de cette étape ; bilatéral par défaut.",
-                        "type": "string",
-                        "enum": [
-                          "gauche",
-                          "droite",
-                          "bilateral"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "exercice_id",
-                      "duree",
-                      "consigne"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "cycle": {
-              "description": "Cycles contraction/relâchement ; null efface. Durée par série calculée.",
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "count": {
-                      "type": "integer",
-                      "minimum": 1,
-                      "maximum": 100,
-                      "description": "Nombre de cycles."
-                    },
-                    "work": {
-                      "description": "Contraction MM:SS.",
-                      "type": "string",
-                      "pattern": "^\\d{1,5}:[0-5]\\d$"
-                    },
-                    "rest": {
-                      "description": "Relâchement MM:SS.",
-                      "type": "string",
-                      "pattern": "^\\d{1,5}:[0-5]\\d$"
-                    }
-                  },
-                  "required": [
-                    "count",
-                    "work",
-                    "rest"
-                  ],
-                  "additionalProperties": false
                 },
                 {
                   "type": "null"
@@ -1279,20 +977,10 @@
       "jours": "jours",
       "angle_deg": "angle_deg",
       "durees": "durees_s",
-      "steps": "steps",
-      "cycle": "cycle",
-      "pause": "pause"
-    },
-    "step": {
-      "exercice_id": "exercice_id",
-      "duree": "duree_s",
+      "cote": "cote",
       "consigne": "consigne",
-      "cote": "cote"
-    },
-    "cycle": {
-      "count": "count",
-      "work": "work_s",
-      "rest": "rest_s"
+      "echauffement": "echauffement",
+      "pause": "pause"
     },
     "pause": {
       "approche": "approche",
@@ -1314,7 +1002,7 @@
     }
   },
   "semantics": [
-    "Pour changer de format, utiliser elan_set_exercise_format avec target=session (session_id + ordre + exercice_id) ou target=defaults (exercice_id). settings.type choisit reps, duration, distance, execution, cycle ou steps. La commande nettoie les anciens paramètres incompatibles et conserve le placement et les jours.",
+    "Pour changer de format, utiliser elan_set_exercise_format avec target=session (session_id + ordre + exercice_id) ou target=defaults (exercice_id). settings.type choisit reps, duration, distance, execution. La commande nettoie les anciens paramètres incompatibles et conserve le placement et les jours.",
     "parametres_defaut dans elan_save_exercise configure uniquement les futurs ajouts ; les séances existantes gardent leurs paramètres. Le champ format des entrées est un ancien texte libre : ce n’est pas le sélecteur de format.",
     "Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.",
     "Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.",

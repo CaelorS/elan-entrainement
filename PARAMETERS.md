@@ -2,7 +2,7 @@
 
 Référence générée depuis les schémas MCP. Toutes les durées modifiables utilisent `MM:SS`. Les entraînements réalisés sont accessibles séparément en lecture seule, après autorisation de l’historique.
 
-- Pour changer de format, utiliser elan_set_exercise_format avec target=session (session_id + ordre + exercice_id) ou target=defaults (exercice_id). settings.type choisit reps, duration, distance, execution, cycle ou steps. La commande nettoie les anciens paramètres incompatibles et conserve le placement et les jours.
+- Pour changer de format, utiliser elan_set_exercise_format avec target=session (session_id + ordre + exercice_id) ou target=defaults (exercice_id). settings.type choisit reps, duration, distance, execution. La commande nettoie les anciens paramètres incompatibles et conserve le placement et les jours.
 - parametres_defaut dans elan_save_exercise configure uniquement les futurs ajouts ; les séances existantes gardent leurs paramètres. Le champ format des entrées est un ancien texte libre : ce n’est pas le sélecteur de format.
 - Lire editable_session/ editable_exercises avant une modification complète. Les champs facultatifs omis sont conservés pour une entrée identifiée par ordre et exercice_id. Utiliser null pour effacer les paramètres facultatifs qui l’acceptent.
 - Les paramètres standard avec valeur par défaut sont remplacés ; la liste exercices est complète, les entrées absentes sont retirées.
@@ -66,47 +66,6 @@ Aucune cible chiffrée. L’utilisateur valide manuellement.
 }
 ```
 
-### Cycles effort / repos (`cycle`)
-
-Alternance chronométrée au sein de chaque passage. Durée = count × (work + rest), par côté. Le repos entre passages est séparé.
-
-```json
-{
-  "type": "cycle",
-  "series": 1,
-  "cycle": {
-    "count": 10,
-    "work": "00:05",
-    "rest": "00:05"
-  },
-  "repos": "00:00"
-}
-```
-
-### Enchaînement d’étapes (`steps`)
-
-Séquence unique de mouvements chronométrés. Chaque étape précise son côté ; aucune duplication gauche/droite automatique. Hors des pauses, sans séries d’approche. Durée totale calculée.
-
-```json
-{
-  "type": "steps",
-  "steps": [
-    {
-      "exercice_id": "knee_to_wall",
-      "duree": "00:30",
-      "cote": "gauche",
-      "consigne": "Talon au sol."
-    },
-    {
-      "exercice_id": "knee_to_wall",
-      "duree": "00:30",
-      "cote": "droite",
-      "consigne": "Talon au sol."
-    }
-  ]
-}
-```
-
 ## Fiche exercice
 
 | Champ MCP | Stockage | Description | Défaut |
@@ -147,13 +106,16 @@ Séquence unique de mouvements chronométrés. Chaque étape précise son côté
 
 | Champ MCP | Stockage | Description | Défaut |
 |---|---|---|---|
+| cote | cote | Côté imposé pour cette occurrence ; omis ou null = utiliser le réglage unilatéral de la fiche. | — |
+| consigne | consigne | Consigne propre à cette occurrence ; null = consigne du catalogue. | — |
+| echauffement | echauffement | Exécution comme échauffement, sans charge ni progression. | — |
 | exercice_id | exercice_id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
 | ordre | ordre | Ordre stable et unique ; omis = position dans la liste, à partir de 1. Les liens intercalaires utilisent cet ordre. | — |
 | series | series | Séries ou passages. | — |
 | reps_min | reps_min | Minimum de répétitions par série et par côté. | 0 |
 | reps_max | reps_max | Maximum de répétitions ; égal au minimum pour une cible fixe. | 0 |
 | mesure | mesure | Répétitions, chronométré, mètres ou exécution libre. | — |
-| duree | duree_s | Durée par série/côté ; recalculée si cycle ou étapes. | "00:00" |
+| duree | duree_s | Durée par série/côté. | "00:00" |
 | repos | repos_s | Repos des séries ; forcé à 00:00 pour un intercalaire. | "00:00" |
 | repos_approche | approche_repos_s | Repos d’approche ; null = moitié du repos standard. | — |
 | distance_m | distance_m | Distance par passage en mètres ; null efface. | — |
@@ -163,27 +125,8 @@ Séquence unique de mouvements chronométrés. Chaque étape précise son côté
 | format | format | Texte de format libre hérité ; ne remplace pas les paramètres chiffrés. | — |
 | jours | jours | 0 dimanche à 6 samedi ; null = tous les jours, [] = aucun jour. Filtre propre à cette entrée. | — |
 | angle_deg | angle_deg | Angle en degrés ; affichage actuellement réservé au squat isométrique. | — |
-| durees | durees_s | Une durée MM:SS par série ; null efface. Exclusif avec cycle et steps. | — |
-| steps | steps | Étapes chronométrées d’échauffement ; null efface. Une seule séquence, sans séries d’approche ni intercalaire. | — |
-| cycle | cycle | Cycles contraction/relâchement ; null efface. Durée par série calculée. | — |
+| durees | durees_s | Une durée MM:SS par série ; null efface. | — |
 | pause | pause | Placement précis dans la pause d’un seul parent, avec pauses_explicites=true ; null efface. | — |
-
-## Étape d’échauffement
-
-| Champ MCP | Stockage | Description | Défaut |
-|---|---|---|---|
-| exercice_id | exercice_id | Identifiant stable ; réutiliser pour modifier, nouveau pour créer. | — |
-| duree | duree_s | Minutes:secondes, ex. 03:30 (jamais un nombre de secondes). | — |
-| consigne | consigne | Consigne de cette étape. | — |
-| cote | cote | Côté de cette étape ; bilatéral par défaut. | — |
-
-## Cycle
-
-| Champ MCP | Stockage | Description | Défaut |
-|---|---|---|---|
-| count | count | Nombre de cycles. | — |
-| work | work_s | Contraction MM:SS. | — |
-| rest | rest_s | Relâchement MM:SS. | — |
 
 ## Pause
 
@@ -204,7 +147,7 @@ Séquence unique de mouvements chronométrés. Chaque étape précise son côté
 ## Compatibilité avec le moteur
 
 - Les entrées sont identifiées par ordre + exercice_id pour conserver les options omises. Pour déplacer un exercice, renvoyer ses paramètres complets depuis editable_session.
-- Les champs steps, cycle et durees sont exclusifs et nécessitent mesure=duration. Le total des étapes/cycles est calculé automatiquement.
+- Le champ durees nécessite mesure=duration, avec une durée par série.
 - Les anciennes versions internes restent conservées ; les outils de lecture sélectionnent uniquement la version courante, comme l’application.
 - Une modification standard incrémente la version technique ; les révisions optimistes restent obligatoires.
 - Les dates de validité sont accessibles ; actif_au non vide retire la séance de la liste courante, conformément au comportement de l’application.

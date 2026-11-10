@@ -1,3 +1,4 @@
+import {normalizeModel} from './legacy-formats.ts';
 import {approachRest,measureFor,hasWeight,hasLoad,distanceFor,estimatedSeconds,isGuided,manualLoadStep} from './activity.ts';
 import type {Program,Model,Entry,Exercise,Task,Session,Run,Row,Feedback} from './types';
 export const AUTO_VALIDATE_SECONDS=8;
@@ -18,12 +19,14 @@ export function suggest(ex:Exercise,entry:Entry,sid:string,history:Session[],now
  return {charge,motif:fb==='facile'?`En progression de ${fmt(charge-ref)} kg par rapport à la dernière fois`:fb==='trop_dur'?`En baisse de ${fmt(ref-charge)} kg par rapport à la dernière fois`:'Comme la dernière fois',reference:`${fmt(ref)} kg · ${latest.nom} · ${new Date(latest.heure_debut).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}`};
 }
 function sets(ex:Exercise,e:Entry,approach=false,factor=1,indexOffset=0):Task[]{
+ ex=e.consigne!==undefined?{...ex,consigne:e.consigne}:ex;
  const measure=measureFor(ex,e),out:Task[]=[];
- for(let i=1;i<=e.series;i++)for(const side of ex.unilateral?['gauche','droite'] as const:['bilateral'] as const)
-  out.push({id:uid(),kind:'set',ex,entry:e,index:i+indexOffset,side,approach,factor,reps:measure==='reps'?e.reps_max:0,seconds:measure==='duration'?(e.durees_s?.[i-1]??e.duree_s):0,warmup:ex.categorie==='echauffement'});
+ for(let i=1;i<=e.series;i++)for(const side of e.cote?[e.cote]:ex.unilateral?['gauche','droite'] as const:['bilateral'] as const)
+  out.push({id:uid(),kind:'set',ex,entry:e,index:i+indexOffset,side,approach,factor,reps:measure==='reps'?e.reps_max:0,seconds:measure==='duration'?(e.durees_s?.[i-1]??e.duree_s):0,warmup:e.echauffement??ex.categorie==='echauffement'});
  return out;
 }
 export function compile(model:Model,program:Program,reduced=false,day=new Date().getDay(),scheduleFillers=true):Task[]{
+ model=normalizeModel(model);
  const catalogue=new Map(program.catalogue.map(e=>[e.id,e]));
  const active=model.exercices.filter(e=>day===-1||!e.jours||e.jours.includes(day));
  const main=active.filter(e=>!e.intercalaire_de.length&&catalogue.has(e.exercice_id)).sort((a,b)=>a.ordre-b.ordre);
@@ -31,12 +34,6 @@ export function compile(model:Model,program:Program,reduced=false,day=new Date()
  main.forEach((raw,blockIndex)=>{
   const ex=catalogue.get(raw.exercice_id)!;
   const e={...raw,series:reduced&&ex.categorie==='force'?Math.ceil(raw.series/2):raw.series};
-  if(e.steps?.length){
-   e.steps.forEach((step,i)=>{const stepEx=catalogue.get(step.exercice_id);if(!stepEx)return;
-    const entry={...e,steps:undefined,cycle:undefined,exercice_id:step.exercice_id,mesure:'duration' as const,duree_s:step.duree_s};
-    out.push({id:uid(),kind:'set',ex:{...stepEx,unilateral:false,consigne:step.consigne},entry,index:1,side:step.cote??'bilateral',approach:false,factor:1,reps:0,seconds:step.duree_s,warmup:true,step:i+1,stepCount:e.steps!.length});
-   });return;
-  }
   if(e.approche){[0,.75,.9].forEach((factor,i)=>{
    const reps=Math.max(1,Math.round(e.reps_max*[1,3/5,2/5][i]));
    const task=sets(ex,{...e,mesure:'reps',series:1,reps_min:reps,reps_max:reps},true,factor,i)[0];

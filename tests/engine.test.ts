@@ -1,4 +1,4 @@
-import {measureFor,distanceFor,rowMeasure,rowDistance,targetLabel,cycleState,primaryRows,hasWeight,entryLabel} from '../lib/activity.ts';
+import {measureFor,distanceFor,rowMeasure,rowDistance,targetLabel,primaryRows,hasWeight,entryLabel} from '../lib/activity.ts';
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {skipExercise,skipFiller,compile,enter,makeRun,suggest,taskLoad,finishRun,startExecution,rowFor,completeExecution,confirmLoad,validateExecution,completeFiller,togglePause,restartTimer,isLastSet,nextSet} from '../lib/engine.ts';import type {Program,Session,Row,Run} from '../lib/types.ts';
 const p=JSON.parse(readFileSync(new URL('../public/data/programme.json',import.meta.url),'utf8')) as Program;const model=p.modeles.find(m=>m.id==='bas_lourde')!;const squat=p.catalogue.find(e=>e.id==='squat')!,entry=model.exercices.find(e=>e.exercice_id==='squat')!;
 const session=(days:number,feedback='ok',reps=5,charge=50):Session=>({seance_uuid:crypto.randomUUID(),date:'2026-10-01',seance_id:'bas_lourde',seance_version:1,nom:'Test',heure_debut:new Date(Date.now()-days*86400000).toISOString(),heure_fin:new Date().toISOString(),duree_min:45,exercices_prevus:3,exercices_faits:3,volume_kg:1000,rpe_global:5,ressenti:'',records:[],statut:'terminee',series:Array.from({length:4},(_,i)=>({exercice_id:'squat',charge_kg:charge,reps_faites:reps,approche:false,cote:'bilateral',index_serie:i+1} as Row)),retours:[{exercice_id:'squat',retour:feedback} as any]});
@@ -28,7 +28,7 @@ test('guided warm-up chains four stages totalling six minutes, without validatio
  assert.equal(run.tasks.filter(t=>t.warmup).reduce((n,t)=>n+t.seconds,0),360);
  run=startExecution(enter(run,0,now),now);
  for(let i=0;i<4;i++){
-  assert.equal(run.phase,'EXECUTION');assert.equal(run.tasks[run.cursor].step,i+1);
+  assert.equal(run.phase,'EXECUTION');assert.equal(run.tasks[run.cursor].entry.ordre,i+1);
   run=completeExecution({...run,rir:8},now+=10000);
   assert.equal(run.rows.length,i+1);assert.equal(run.rows.at(-1)!.rir_ressenti,null);
  }
@@ -78,7 +78,7 @@ test('normal plans preserve prescribed inserts with one activity per rest and no
   const all=tasks.flatMap(t=>t.kind==='set'?[t]:t.fillers??[]);
   for(const e of model.exercices.filter(e=>!e.jours||e.jours.includes(5))){
    const ex=p.catalogue.find(x=>x.id===e.exercice_id)!;
-   const expected=e.steps?.length??e.series*(ex.unilateral?2:1);
+   const expected=e.steps?.length??e.series*(e.cote?1:ex.unilateral?2:1);
    assert.equal(all.filter(t=>t.entry.ordre===e.ordre&&!t.approach).length,expected,model.id+':'+ex.id);
   }
  }
@@ -113,14 +113,12 @@ test('restart restores the whole timer; pause does not consume a warm-up stage',
  run=restartTimer(run,'activity',32000);assert.equal(run.deadline,152000);assert.equal(run.executionAt,32000);
  const done=completeExecution(run,42000);assert.equal(done.rows[0].duree_s,10);
 });
-test('short foot alternates contraction and release ten times, bilaterally',()=>{
+test('legacy short foot becomes a plain timed execution preserving its total duration',()=>{
  const ex={...p.catalogue.find(e=>e.id==='pied_court')!,unilateral:false};
  const fixture={...model,exercices:[{...entry,exercice_id:ex.id,approche:false,series:1,mesure:'duration' as const,duree_s:100,cycle:{count:10,work_s:5,rest_s:5}}]};
  let run=makeRun(fixture,{...p,catalogue:p.catalogue.map(e=>e.id===ex.id?ex:e)},[],false),task=run.tasks[0];
  assert.equal(task.side,'bilateral');assert.equal(run.tasks.filter(t=>t.kind==='set').length,1);
- assert.deepEqual(cycleState(task,1000,1000),{index:1,count:10,contract:true,remaining:5,done:false});
- assert.equal(cycleState(task,1000,6000)!.contract,false);assert.equal(cycleState(task,1000,11000)!.index,2);
- assert.equal(cycleState(task,1000,101000)!.done,true);
+ assert.equal(task.entry.cycle,undefined);assert.equal(task.seconds,100);
  run=completeExecution(startExecution(enter(run,0,1000),1000),101000);
  assert.equal(run.phase,'BILAN');assert.equal(run.rows[0].duree_s,100);assert.equal(run.rows[0].rir_ressenti,null);
 });
@@ -158,8 +156,8 @@ test('default revisions update only affected entries and preserve history, custo
  defaults.modeles[0]={...warmModel,exercices:warmModel.exercices.map((e,i)=>i===0?{...e,revision:2}:e)};
  old.modeles[0].exercices[1].series=7;
  const data={program:old,sessions:[session(2)],running:forceRun(),pending:[],runs:[],settings:{audio:'beeps',barKg:20,reduced:false,sheetsUrl:''},lastSync:null} as LocalData;
- const migrated=migrateData(data,defaults);assert.equal(migrated.program.modeles[0].exercices[0].steps!.length,4);
- assert.equal(migrated.program.modeles[0].exercices[1].series,7);assert.equal(migrated.program.modeles[0].version,4);
+ const migrated=migrateData(data,defaults);assert.equal(migrated.program.modeles[0].exercices.filter(e=>e.echauffement).length,4);
+ assert.equal(migrated.program.modeles[0].exercices[4].series,7);assert.equal(migrated.program.modeles[0].version,4);
  assert.equal(migrated.sessions,data.sessions);assert.equal(migrated.running,data.running);assert.ok(migrated.pending.includes('program'));
  assert.equal(migrateData(migrated,defaults),migrated);
 });

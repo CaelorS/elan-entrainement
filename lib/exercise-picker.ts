@@ -1,3 +1,4 @@
+import {normalizeEntry} from './legacy-formats.ts';
 import {defaultExerciseEntry} from './exercise-format.ts';
 import type {Exercise,Entry,Model} from './types.ts';
 const normalize=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('fr').replace(/[’']/g,' ').trim();
@@ -6,11 +7,11 @@ export function sharedExerciseTemplate(ex:Exercise,current:Model,models:Model[])
  if(ex.parametres_defaut)return defaultExerciseEntry(ex);
  const all=[current,...models.filter(m=>m!==current&&!m.actif_au),...models.filter(m=>m.actif_au)];
  const template=all.flatMap(m=>m.exercices).find(e=>e.exercice_id===ex.id&&e.intercalaire_de.length)??all.flatMap(m=>m.exercices).find(e=>e.exercice_id===ex.id);
- if(template)return structuredClone(template);
+ if(template)return structuredClone(normalizeEntry(template));
  return defaultExerciseEntry(ex);
 }
 export function insertTemplate(ex:Exercise,current:Model,models:Model[],copy?:Entry|null):Entry{
- const template=copy?.exercice_id===ex.id?structuredClone(copy):sharedExerciseTemplate(ex,current,models);
+ const template=copy?.exercice_id===ex.id?structuredClone(normalizeEntry(copy)):sharedExerciseTemplate(ex,current,models);
  return {...template,series:copy?.exercice_id===ex.id?copy.series:1,duree_s:copy?.exercice_id===ex.id?template.duree_s:template.durees_s?.[0]??template.duree_s,durees_s:copy?.exercice_id===ex.id?template.durees_s:undefined,repos_s:0,approche:false,approche_repos_s:undefined,jours:undefined,format:'',repos_total_s:undefined,duree_totale_s:undefined};
 }
 export function exerciseChoices(catalogue:Exercise[],models:Model[],query:string){

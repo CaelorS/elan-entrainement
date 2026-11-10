@@ -358,7 +358,7 @@
       "categorie": "force",
       "type_charge": "barre",
       "unilateral": false,
-      "increment_kg": 5.0,
+      "increment_kg": 5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
@@ -372,7 +372,7 @@
       "categorie": "force",
       "type_charge": "barre",
       "unilateral": false,
-      "increment_kg": 5.0,
+      "increment_kg": 5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
@@ -386,7 +386,7 @@
       "categorie": "force",
       "type_charge": "barre",
       "unilateral": false,
-      "increment_kg": 5.0,
+      "increment_kg": 5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
@@ -400,7 +400,7 @@
       "categorie": "force",
       "type_charge": "barre",
       "unilateral": false,
-      "increment_kg": 5.0,
+      "increment_kg": 5,
       "consigne": "Exercice de démonstration. Personnalise cette consigne dans ton programme.",
       "vigilance": "",
       "objectif": "",
@@ -583,34 +583,44 @@
       "archive": false,
       "exercices": [
         {
-          "exercice_id": "transition",
+          "exercice_id": "knee_to_wall",
           "ordre": 1,
           "series": 1,
           "reps_min": 0,
           "reps_max": 0,
-          "duree_s": 60,
+          "duree_s": 30,
           "repos_s": 0,
           "approche": false,
           "intercalaire_de": [],
           "format": "",
           "note": "",
           "revision": 2,
-          "steps": [
-            {
-              "exercice_id": "knee_to_wall",
-              "duree_s": 30,
-              "consigne": "Activité de démonstration."
-            },
-            {
-              "exercice_id": "rotation_thoracique",
-              "duree_s": 30,
-              "consigne": "Activité de démonstration."
-            }
-          ]
+          "mesure": "duration",
+          "cote": "bilateral",
+          "consigne": "Activité de démonstration.",
+          "echauffement": true
+        },
+        {
+          "exercice_id": "rotation_thoracique",
+          "ordre": 2,
+          "series": 1,
+          "reps_min": 0,
+          "reps_max": 0,
+          "duree_s": 30,
+          "repos_s": 0,
+          "approche": false,
+          "intercalaire_de": [],
+          "format": "",
+          "note": "",
+          "revision": 2,
+          "mesure": "duration",
+          "cote": "bilateral",
+          "consigne": "Activité de démonstration.",
+          "echauffement": true
         },
         {
           "exercice_id": "squat",
-          "ordre": 2,
+          "ordre": 3,
           "series": 4,
           "reps_min": 5,
           "reps_max": 5,
@@ -623,7 +633,7 @@
         },
         {
           "exercice_id": "rotation_thoracique",
-          "ordre": 3,
+          "ordre": 4,
           "series": 1,
           "reps_min": 8,
           "reps_max": 8,
@@ -631,14 +641,14 @@
           "repos_s": 0,
           "approche": false,
           "intercalaire_de": [
-            2
+            3
           ],
           "format": "",
           "note": ""
         },
         {
           "exercice_id": "souleve_terre",
-          "ordre": 4,
+          "ordre": 5,
           "series": 4,
           "reps_min": 5,
           "reps_max": 5,
@@ -706,34 +716,44 @@
       "archive": false,
       "exercices": [
         {
-          "exercice_id": "transition",
+          "exercice_id": "knee_to_wall",
           "ordre": 1,
           "series": 1,
           "reps_min": 0,
           "reps_max": 0,
-          "duree_s": 60,
+          "duree_s": 30,
           "repos_s": 0,
           "approche": false,
           "intercalaire_de": [],
           "format": "",
           "note": "",
           "revision": 2,
-          "steps": [
-            {
-              "exercice_id": "knee_to_wall",
-              "duree_s": 30,
-              "consigne": "Activité de démonstration."
-            },
-            {
-              "exercice_id": "rotation_thoracique",
-              "duree_s": 30,
-              "consigne": "Activité de démonstration."
-            }
-          ]
+          "mesure": "duration",
+          "cote": "bilateral",
+          "consigne": "Activité de démonstration.",
+          "echauffement": true
+        },
+        {
+          "exercice_id": "rotation_thoracique",
+          "ordre": 2,
+          "series": 1,
+          "reps_min": 0,
+          "reps_max": 0,
+          "duree_s": 30,
+          "repos_s": 0,
+          "approche": false,
+          "intercalaire_de": [],
+          "format": "",
+          "note": "",
+          "revision": 2,
+          "mesure": "duration",
+          "cote": "bilateral",
+          "consigne": "Activité de démonstration.",
+          "echauffement": true
         },
         {
           "exercice_id": "squat",
-          "ordre": 2,
+          "ordre": 3,
           "series": 4,
           "reps_min": 5,
           "reps_max": 5,
@@ -746,7 +766,7 @@
         },
         {
           "exercice_id": "rotation_thoracique",
-          "ordre": 3,
+          "ordre": 4,
           "series": 1,
           "reps_min": 8,
           "reps_max": 8,
@@ -754,14 +774,14 @@
           "repos_s": 0,
           "approche": false,
           "intercalaire_de": [
-            2
+            3
           ],
           "format": "",
           "note": ""
         },
         {
           "exercice_id": "souleve_terre",
-          "ordre": 4,
+          "ordre": 5,
           "series": 4,
           "reps_min": 5,
           "reps_max": 5,

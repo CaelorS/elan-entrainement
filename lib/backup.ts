@@ -1,8 +1,9 @@
+import {normalizeProgram} from './legacy-formats.ts';
 import {z} from 'zod';
 import type {LocalData,Program,Session,RunLog} from './types';
 const number=z.number().finite().nonnegative();
 const text=z.string();
-const entry=z.object({angle_deg:number.max(180).optional(),durees_s:z.array(number.positive()).optional(),exercice_id:text,series:number.int(),reps_min:number,reps_max:number,duree_s:number,repos_s:number,approche:z.boolean(),intercalaire_de:z.array(number),format:text,note:text,ordre:number,mesure:z.enum(['reps','duration','distance','execution']).optional(),distance_m:number.optional(),jours:z.array(number.int().max(6)).optional(),steps:z.array(z.object({exercice_id:text,duree_s:number,consigne:text,cote:z.enum(['gauche','droite','bilateral']).optional()})).optional(),cycle:z.object({count:number.int().positive(),work_s:number.positive(),rest_s:number}).optional()}).passthrough();
+const entry=z.object({cote:z.enum(['gauche','droite','bilateral']).optional(),consigne:text.optional(),echauffement:z.boolean().optional(),angle_deg:number.max(180).optional(),durees_s:z.array(number.positive()).optional(),exercice_id:text,series:number.int(),reps_min:number,reps_max:number,duree_s:number,repos_s:number,approche:z.boolean(),intercalaire_de:z.array(number),format:text,note:text,ordre:number,mesure:z.enum(['reps','duration','distance','execution']).optional(),distance_m:number.optional(),jours:z.array(number.int().max(6)).optional(),steps:z.array(z.object({exercice_id:text,duree_s:number,consigne:text,cote:z.enum(['gauche','droite','bilateral']).optional()})).optional(),cycle:z.object({count:number.int().positive(),work_s:number.positive(),rest_s:number}).optional()}).passthrough();
 const exercise=z.object({id:text.min(1),nom:text,categorie:text,type_charge:text,unilateral:z.boolean(),increment_kg:number,consigne:text,vigilance:text,objectif:text,media:text,audio_nom:text,statut:text,parametres_defaut:entry.optional()}).passthrough();
 const model=z.object({id:text,nom:text,sous_titre:text,duree_min:number,jours:z.array(number.int().max(6)),version:number.int(),actif_du:text,actif_au:text,archive:z.boolean(),exercices:z.array(entry)}).passthrough();
 export const programSchema=z.object({catalogue:z.array(exercise),modeles:z.array(model)}).passthrough().superRefine((p,ctx)=>{const ids=new Set(p.catalogue.map(e=>e.id));for(const ex of p.catalogue){const defaults=ex.parametres_defaut;if(defaults&&(defaults.exercice_id!==ex.id||defaults.steps?.some(step=>!ids.has(step.exercice_id))))ctx.addIssue({code:'custom',message:'Paramètres par défaut liés à un exercice absent du catalogue'});}for(const m of p.modeles)for(const e of m.exercices)if(!ids.has(e.exercice_id)||e.steps?.some(step=>!ids.has(step.exercice_id)))ctx.addIssue({code:'custom',message:'Exercice absent du catalogue'});});
@@ -14,6 +15,6 @@ export function restoreBackup(local:LocalData,input:unknown):LocalData{
  const sessions=new Map(local.sessions.map(s=>[s.seance_uuid,s]));
  for(const s of b.sessions.filter(s=>!local.deletedSessions?.includes(s.seance_uuid)))sessions.set(s.seance_uuid,s as Session);
  const runs=new Map(local.runs.map(r=>[r.uuid,r]));for(const r of b.runs)runs.set(r.uuid,r as RunLog);
- return {...local,program:b.program as Program,sessions:[...sessions.values()],runs:[...runs.values()],settings:b.settings?{...b.settings,sheetsUrl:''}:local.settings,
+ return {...local,program:normalizeProgram(b.program as Program),sessions:[...sessions.values()],runs:[...runs.values()],settings:b.settings?{...b.settings,sheetsUrl:''}:local.settings,
   pending:[...new Set([...local.pending,'program',...b.sessions.map(s=>s.seance_uuid),...b.runs.map(r=>r.uuid)])]};
 }

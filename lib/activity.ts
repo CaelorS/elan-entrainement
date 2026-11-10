@@ -13,8 +13,6 @@ export const rowDistance=(row:Row)=>row.distance_m??(row.exercice_id==='marche_e
 const number=(n:number)=>new Intl.NumberFormat('fr-FR',{maximumFractionDigits:1}).format(n);
 export const durationLabel=(seconds:number)=>{const total=Math.max(0,Math.round(Number.isFinite(seconds)?seconds:0));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`};
 export function targetLabel(ex:Exercise,entry:Entry){
- if(entry.steps?.length)return `${durationLabel(entry.steps.reduce((n,s)=>n+s.duree_s,0))} · ${entry.steps.length} étapes`;
- if(entry.cycle)return `${entry.cycle.count} cycles · ${durationLabel(entry.cycle.work_s)} / ${durationLabel(entry.cycle.rest_s)} · deux pieds ensemble`;
  switch(measureFor(ex,entry)){
   case 'duration':return entry.durees_s?.length?entry.durees_s.map(durationLabel).join(' / '):durationLabel(entry.duree_s);
   case 'distance':return `${number(distanceFor(ex,entry))} m`;
@@ -22,7 +20,7 @@ export function targetLabel(ex:Exercise,entry:Entry){
   default:return 'À réaliser';
  }
 }
-export const entryLabel=(ex:Exercise,entry:Entry)=>`${entry.series>1&&!entry.durees_s?.length?entry.series+' × ':''}${targetLabel(ex,entry)}${ex.unilateral?' par côté':''}`;
+export const entryLabel=(ex:Exercise,entry:Entry)=>`${entry.series>1&&!entry.durees_s?.length?entry.series+' × ':''}${targetLabel(ex,entry)}${entry.cote&&entry.cote!=='bilateral'?' · '+entry.cote:!entry.cote&&ex.unilateral?' par côté':''}`;
 // Repetition work has no implicit duration; zero excludes unknown time from scheduling totals.
 export function estimatedSeconds(task:Task){
  const measure=measureFor(task.ex,task.entry);
@@ -32,12 +30,6 @@ export function estimatedSeconds(task:Task){
 export const isGuided=(task:Task)=>!!task.warmup||task.ex.categorie!=='force';
 export const isWarmupRow=(row:Row,catalogue:Exercise[])=>row.echauffement??catalogue.find(e=>e.id===row.exercice_id)?.categorie==='echauffement';
 export const primaryRows=(rows:Row[],catalogue:Exercise[])=>rows.filter(r=>!r.intercalaire&&!isWarmupRow(r,catalogue));
-export function cycleState(task:Task,startedAt:number,now:number){
- const cycle=task.entry.cycle;if(!cycle)return null;
- const period=cycle.work_s+cycle.rest_s,elapsed=Math.max(0,(now-startedAt)/1000),position=elapsed%period;
- return {index:Math.min(cycle.count,Math.floor(elapsed/period)+1),count:cycle.count,contract:position<cycle.work_s,remaining:Math.ceil(position<cycle.work_s?cycle.work_s-position:period-position),done:elapsed>=period*cycle.count};
-}
-
 export const hasAngle=(ex:Exercise)=>ex.id==='squat_isometrique';
 
 // Manual +/- controls only. Automatic progression keeps its own programme rules.

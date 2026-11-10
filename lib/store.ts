@@ -1,3 +1,4 @@
+import {normalizeProgram} from './legacy-formats.ts';
 import {supabase} from './supabase.ts';
 import type {LocalData,Program,Session,RunLog,Exercise} from './types';
 // JSONB can reorder object keys; compare values, not their serialized key order.
@@ -7,7 +8,7 @@ export type CloudResult={deleted_sessions?:string[];catalogue?:Exercise[];progra
 // Keep account-specific definitions; add missing shared exercises without replacing the programme.
 export function mergeCatalogue(program:Program,catalogue:Exercise[]):Program {
  const own=new Set(program.catalogue.map(e=>e.id));
- return {...program,catalogue:[...program.catalogue,...catalogue.filter(e=>!own.has(e.id))]};
+ return normalizeProgram({...program,catalogue:[...program.catalogue,...catalogue.filter(e=>!own.has(e.id))]});
 }
 export class ProgramConflict extends Error { remote:CloudResult;constructor(remote:CloudResult){super('Ton programme a aussi été modifié sur un autre appareil. Choisis la version à conserver dans les réglages.');this.remote=remote} }
 let dbPromise:Promise<IDBDatabase>|null=null;
@@ -25,7 +26,7 @@ export class TrainingStore {
   for(const s of entries)if(!sessions.has(s.seance_uuid))sessions.set(s.seance_uuid,s);
   let running=data.running&&sessions.has(data.running.uuid)?null:data.running;
   try{const checkpoint=JSON.parse(localStorage.getItem('elan-bilan:'+this.userId)??'null');if(checkpoint?.phase==='BILAN'&&running?.uuid===checkpoint.uuid)running=checkpoint}catch{}
-  return {...data,running,sessions:[...sessions.values()],pending:[...new Set([...data.pending,...entries.map(s=>s.seance_uuid)])]};
+  return {...data,program:normalizeProgram(data.program),running,sessions:[...sessions.values()],pending:[...new Set([...data.pending,...entries.map(s=>s.seance_uuid)])]};
  }
  persistCompleted(data:LocalData,session:Session){
   let journalSaved=false;
